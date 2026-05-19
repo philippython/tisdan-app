@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlmodel import SQLModel, Field
 
-from enums.result_status_enum import ResultStatus
+from ..enums.result_status_enum import ResultStatus
 
 
 class Result(SQLModel, table=True):
