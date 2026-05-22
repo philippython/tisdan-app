@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
     full_name: str
     phone_number: str
     role: UserRole
-    branch_id: Optional[str]
+    branch_id: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -19,3 +19,7 @@ class UserResponse(BaseModel):
     full_name: str
     phone_number: str
     role: UserRole
+    branch_id: Optional[str] = None
+
+    class Config:
+        orm_mode = True

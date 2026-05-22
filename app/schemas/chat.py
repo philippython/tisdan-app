@@ -13,3 +13,6 @@ class ChatResponse(BaseModel):
     doctor_id: str
     client_id: str
     created_at: datetime
+
+    class Config:
+        orm_mode = True

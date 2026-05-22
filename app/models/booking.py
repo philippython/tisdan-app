@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlmodel import SQLModel, Field, Relationship
 
-from ..enums.booking_status_enum import BookingStatus
+from enums.booking_status_enum import BookingStatus
 
 
 class Booking(SQLModel, table=True):

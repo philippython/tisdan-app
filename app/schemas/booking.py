@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from enums.booking_status_enum import BookingStatus
 
 
 class BookingCreate(BaseModel):
@@ -7,3 +8,15 @@ class BookingCreate(BaseModel):
     user_id: str
     test_id: str
     branch_id: str
+
+
+class BookingResponse(BaseModel):
+    id: str
+    booking_date: datetime
+    status: BookingStatus
+    user_id: str
+    test_id: str
+    branch_id: str
+
+    class Config:
+        orm_mode = True

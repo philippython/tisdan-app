@@ -1,0 +1,48 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
+from routes.dependencies import get_session
+from schemas.result import ResultCreate, ResultResponse
+from services.result import (
+    create_result_item,
+    delete_result_item,
+    get_result,
+    list_result,
+    update_result_item,
+)
+
+router = APIRouter(prefix="/results", tags=["Results"])
+
+
+@router.post("/", response_model=ResultResponse, status_code=status.HTTP_201_CREATED)
+def create_result(payload: ResultCreate, session: Session = Depends(get_session)):
+    return create_result_item(session, payload)
+
+
+@router.get("/", response_model=List[ResultResponse])
+def read_results(session: Session = Depends(get_session)):
+    return list_result(session)
+
+
+@router.get("/{item_id}", response_model=ResultResponse)
+def read_result(item_id: str, session: Session = Depends(get_session)):
+    item = get_result(session, item_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    return item
+
+
+@router.put("/{item_id}", response_model=ResultResponse)
+def update_result(item_id: str, payload: ResultCreate, session: Session = Depends(get_session)):
+    item = update_result_item(session, item_id, payload)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    return item
+
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_result(item_id: str, session: Session = Depends(get_session)):
+    deleted = delete_result_item(session, item_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    return None
