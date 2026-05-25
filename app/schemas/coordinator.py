@@ -1,15 +1,15 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class CoordinatorCreate(BaseModel):
     referral_code: str
-    user_id: str
+    user_id: UUID
 
 
 class CoordinatorResponse(BaseModel):
-    id: str
+    id: UUID
     referral_code: str
-    user_id: str
+    user_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

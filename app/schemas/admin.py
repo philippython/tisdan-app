@@ -1,13 +1,13 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class AdminCreate(BaseModel):
-    user_id: str
+    user_id: UUID
 
 
 class AdminResponse(BaseModel):
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

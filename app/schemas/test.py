@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class TestCreate(BaseModel):
@@ -8,10 +9,9 @@ class TestCreate(BaseModel):
 
 
 class TestResponse(BaseModel):
-    id: str
+    id: UUID
     name: str
     description: str
     price: float
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

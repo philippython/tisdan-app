@@ -1,22 +1,22 @@
 from pydantic import BaseModel
 from datetime import datetime
+from uuid import UUID
 from app.enums.booking_status_enum import BookingStatus
 
 
 class BookingCreate(BaseModel):
     booking_date: datetime
-    user_id: str
-    test_id: str
-    branch_id: str
+    user_id: UUID
+    test_id: UUID
+    branch_id: UUID
 
 
 class BookingResponse(BaseModel):
-    id: str
+    id: UUID
     booking_date: datetime
     status: BookingStatus
-    user_id: str
-    test_id: str
-    branch_id: str
+    user_id: UUID
+    test_id: UUID
+    branch_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

@@ -1,20 +1,20 @@
 from pydantic import BaseModel
 from datetime import time
+from uuid import UUID
 
 
 class BranchScheduleCreate(BaseModel):
     day: str
     opening_time: time
     closing_time: time
-    branch_id: str
+    branch_id: UUID
 
 
 class BranchScheduleResponse(BaseModel):
-    id: str
+    id: UUID
     day: str
     opening_time: time
     closing_time: time
-    branch_id: str
+    branch_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from uuid import UUID
 
 
 class BroadcastGeneralCreate(BaseModel):
@@ -8,25 +9,23 @@ class BroadcastGeneralCreate(BaseModel):
 
 
 class BroadcastGeneralResponse(BaseModel):
-    id: str
+    id: UUID
     title: str
     message: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class BroadcastPersonalCreate(BaseModel):
-    user_id: str
+    user_id: UUID
     message: str
 
 
 class BroadcastPersonalResponse(BaseModel):
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     message: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

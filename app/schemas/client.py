@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class ClientCreate(BaseModel):
@@ -8,10 +9,9 @@ class ClientCreate(BaseModel):
 
 
 class ClientResponse(BaseModel):
-    id: str
+    id: UUID
     gender: str
     age: int
-    user_id: str
+    user_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

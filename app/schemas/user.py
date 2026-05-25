@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from uuid import UUID
 
 from app.enums.role_enum import UserRole
 
@@ -10,16 +11,15 @@ class UserCreate(BaseModel):
     full_name: str
     phone_number: str
     role: UserRole
-    branch_id: Optional[str] = None
+    branch_id: Optional[UUID] = None
 
 
 class UserResponse(BaseModel):
-    id: str
+    id: UUID
     email: EmailStr
     full_name: str
     phone_number: str
     role: UserRole
-    branch_id: Optional[str] = None
+    branch_id: Optional[UUID] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

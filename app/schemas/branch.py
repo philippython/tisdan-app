@@ -13,6 +13,4 @@ class BranchResponse(BaseModel):
     name: str
     address: str
     branch_code: str
-
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

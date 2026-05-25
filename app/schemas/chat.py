@@ -1,18 +1,18 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 
 class ChatCreate(BaseModel):
-    doctor_id: str
-    client_id: str
+    doctor_id: UUID
+    client_id: UUID
 
 
 class ChatResponse(BaseModel):
-    id: str
-    doctor_id: str
-    client_id: str
+    id: UUID
+    doctor_id: UUID
+    client_id: UUID
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

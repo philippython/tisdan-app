@@ -1,15 +1,15 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class StaffCreate(BaseModel):
     department: str
-    user_id: str
+    user_id: UUID
 
 
 class StaffResponse(BaseModel):
-    id: str
+    id: UUID
     department: str
-    user_id: str
+    user_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
