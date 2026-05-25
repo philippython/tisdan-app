@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.branch_schedule import (
+from app.repositories.branch_schedule import (
     create_branch_schedule,
     delete_branch_schedule,
     get_branch_schedule_by_id,

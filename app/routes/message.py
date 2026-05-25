@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.message import MessageCreate, MessageResponse
-from services.message import (
+from app.routes.dependencies import get_session
+from app.schemas.message import MessageCreate, MessageResponse
+from app.services.message import (
     create_message_item,
     delete_message_item,
     get_message,

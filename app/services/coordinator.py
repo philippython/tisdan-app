@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.coordinator import (
+from app.repositories.coordinator import (
     create_coordinator,
     delete_coordinator,
     get_coordinator_by_id,

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from sqlmodel import Session, SQLModel
 
-from repositories.repository import (
+from app.repositories.repository import (
     create_item,
     delete_item,
     get_all_items,

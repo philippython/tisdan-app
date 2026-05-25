@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.client import ClientCreate, ClientResponse
-from services.client import (
+from app.routes.dependencies import get_session
+from app.schemas.client import ClientCreate, ClientResponse
+from app.services.client import (
     create_client_item,
     delete_client_item,
     get_client,

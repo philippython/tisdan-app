@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.staff import (
+from app.repositories.staff import (
     create_staff,
     delete_staff,
     get_staff_by_id,

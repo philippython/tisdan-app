@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.test import TestCreate, TestResponse
-from services.test import (
+from app.routes.dependencies import get_session
+from app.schemas.test import TestCreate, TestResponse
+from app.services.test import (
     create_test_item,
     delete_test_item,
     get_test,

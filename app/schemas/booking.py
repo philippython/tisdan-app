@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from enums.booking_status_enum import BookingStatus
+from app.enums.booking_status_enum import BookingStatus
 
 
 class BookingCreate(BaseModel):

@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.chat import (
+from app.repositories.chat import (
     create_chat,
     delete_chat,
     get_chat_by_id,

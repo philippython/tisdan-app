@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.branch_schedule import BranchScheduleCreate, BranchScheduleResponse
-from services.branch_schedule import (
+from app.routes.dependencies import get_session
+from app.schemas.branch_schedule import BranchScheduleCreate, BranchScheduleResponse
+from app.services.branch_schedule import (
     create_branch_schedule_item,
     delete_branch_schedule_item,
     get_branch_schedule,

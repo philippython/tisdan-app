@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.chat import ChatCreate, ChatResponse
-from services.chat import (
+from app.routes.dependencies import get_session
+from app.schemas.chat import ChatCreate, ChatResponse
+from app.services.chat import (
     create_chat_item,
     delete_chat_item,
     get_chat,

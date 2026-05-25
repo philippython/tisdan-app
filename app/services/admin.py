@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.admin import (
+from app.repositories.admin import (
     create_admin,
     delete_admin,
     get_admin_by_id,

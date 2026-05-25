@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.message import (
+from app.repositories.message import (
     create_message,
     delete_message,
     get_message_by_id,

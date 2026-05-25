@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from enums.result_status_enum import ResultStatus
+from app.enums.result_status_enum import ResultStatus
 
 
 class ResultCreate(BaseModel):

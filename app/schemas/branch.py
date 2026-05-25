@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class BranchCreate(BaseModel):
@@ -8,7 +9,7 @@ class BranchCreate(BaseModel):
 
 
 class BranchResponse(BaseModel):
-    id: str
+    id: UUID
     name: str
     address: str
     branch_code: str

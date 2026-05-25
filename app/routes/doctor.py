@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.doctor import DoctorCreate, DoctorResponse
-from services.doctor import (
+from app.routes.dependencies import get_session
+from app.schemas.doctor import DoctorCreate, DoctorResponse
+from app.services.doctor import (
     create_doctor_item,
     delete_doctor_item,
     get_doctor,

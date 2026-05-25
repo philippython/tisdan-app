@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.user import (
+from app.repositories.user import (
     create_user,
     delete_user,
     get_user_by_id,

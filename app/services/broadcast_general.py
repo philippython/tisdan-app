@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.broadcast_general import (
+from app.repositories.broadcast_general import (
     create_broadcast_general,
     delete_broadcast_general,
     get_broadcast_general_by_id,

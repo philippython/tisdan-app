@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from sqlmodel import Session
-from models import BranchSchedule
-from repositories.repository import create_item, delete_item, get_all_items, get_item_by_id, update_item
+from app.models import BranchSchedule
+from app.repositories.repository import create_item, delete_item, get_all_items, get_item_by_id, update_item
 
 
 def get_all_branch_schedule(session: Session):

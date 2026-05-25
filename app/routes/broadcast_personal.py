@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.broadcast import BroadcastPersonalCreate, BroadcastPersonalResponse
-from services.broadcast_personal import (
+from app.routes.dependencies import get_session
+from app.schemas.broadcast import BroadcastPersonalCreate, BroadcastPersonalResponse
+from app.services.broadcast_personal import (
     create_broadcast_personal_item,
     delete_broadcast_personal_item,
     get_broadcast_personal,

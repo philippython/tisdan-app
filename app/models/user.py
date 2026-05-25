@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from enums.role_enum import UserRole
+from app.enums.role_enum import UserRole
 
 
 class User(SQLModel, table=True):

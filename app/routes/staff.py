@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.staff import StaffCreate, StaffResponse
-from services.staff import (
+from app.routes.dependencies import get_session
+from app.schemas.staff import StaffCreate, StaffResponse
+from app.services.staff import (
     create_staff_item,
     delete_staff_item,
     get_staff,

@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.client import (
+from app.repositories.client import (
     create_client,
     delete_client,
     get_client_by_id,

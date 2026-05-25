@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.doctor import (
+from app.repositories.doctor import (
     create_doctor,
     delete_doctor,
     get_doctor_by_id,

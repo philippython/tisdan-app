@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.coordinator import CoordinatorCreate, CoordinatorResponse
-from services.coordinator import (
+from app.routes.dependencies import get_session
+from app.schemas.coordinator import CoordinatorCreate, CoordinatorResponse
+from app.services.coordinator import (
     create_coordinator_item,
     delete_coordinator_item,
     get_coordinator,

@@ -1,9 +1,9 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from routes.dependencies import get_session
-from schemas.booking import BookingCreate, BookingResponse
-from services.booking import (
+from app.routes.dependencies import get_session
+from app.schemas.booking import BookingCreate, BookingResponse
+from app.services.booking import (
     create_booking_item,
     delete_booking_item,
     get_booking,

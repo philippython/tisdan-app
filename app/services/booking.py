@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.booking import (
+from app.repositories.booking import (
     create_booking,
     delete_booking,
     get_booking_by_id,

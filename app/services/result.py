@@ -1,6 +1,6 @@
 from typing import Any
 from sqlmodel import Session
-from repositories.result import (
+from app.repositories.result import (
     create_result,
     delete_result,
     get_result_by_id,
