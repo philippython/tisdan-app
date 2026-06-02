@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.branch import BranchCreate, BranchResponse
 from app.services.branch import (
@@ -11,7 +13,11 @@ from app.services.branch import (
     update_branch_item,
 )
 
-router = APIRouter(prefix="/branches", tags=["Branches"])
+router = APIRouter(
+    prefix="/branches",
+    tags=["Branches"],
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))],
+)
 
 
 @router.post("/", response_model=BranchResponse, status_code=status.HTTP_201_CREATED)

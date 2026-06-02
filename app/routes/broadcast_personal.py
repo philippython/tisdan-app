@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.broadcast import BroadcastPersonalCreate, BroadcastPersonalResponse
 from app.services.broadcast_personal import (
@@ -11,7 +13,11 @@ from app.services.broadcast_personal import (
     update_broadcast_personal_item,
 )
 
-router = APIRouter(prefix="/broadcasts/personal", tags=["BroadcastPersonal"])
+router = APIRouter(
+    prefix="/broadcasts/personal",
+    tags=["BroadcastPersonal"],
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))],
+)
 
 
 @router.post("/", response_model=BroadcastPersonalResponse, status_code=status.HTTP_201_CREATED)

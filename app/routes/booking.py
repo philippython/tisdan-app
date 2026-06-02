@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import get_current_user, require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.booking import BookingCreate, BookingResponse
 from app.services.booking import (
@@ -11,7 +13,11 @@ from app.services.booking import (
     update_booking_item,
 )
 
-router = APIRouter(prefix="/bookings", tags=["Bookings"])
+router = APIRouter(
+    prefix="/bookings",
+    tags=["Bookings"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
@@ -33,7 +39,12 @@ def read_booking(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=BookingResponse)
-def update_booking(item_id: str, payload: BookingCreate, session: Session = Depends(get_session)):
+def update_booking(
+    item_id: str,
+    payload: BookingCreate,
+    session: Session = Depends(get_session),
+    current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
+):
     item = update_booking_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -41,7 +52,11 @@ def update_booking(item_id: str, payload: BookingCreate, session: Session = Depe
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_booking(item_id: str, session: Session = Depends(get_session)):
+def delete_booking(
+    item_id: str,
+    session: Session = Depends(get_session),
+    current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
+):
     deleted = delete_booking_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

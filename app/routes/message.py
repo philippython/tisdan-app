@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import get_current_user
 from app.routes.dependencies import get_session
 from app.schemas.message import MessageCreate, MessageResponse
 from app.services.message import (
@@ -11,7 +12,11 @@ from app.services.message import (
     update_message_item,
 )
 
-router = APIRouter(prefix="/messages", tags=["Messages"])
+router = APIRouter(
+    prefix="/messages",
+    tags=["Messages"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("/", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)

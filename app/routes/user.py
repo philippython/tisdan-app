@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.user import UserCreate, UserResponse
 from app.services.user import (
@@ -11,7 +13,11 @@ from app.services.user import (
     update_user_item,
 )
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"],
+    dependencies=[Depends(require_roles(UserRole.ADMIN))],
+)
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.doctor import DoctorCreate, DoctorResponse
 from app.services.doctor import (
@@ -11,7 +13,11 @@ from app.services.doctor import (
     update_doctor_item,
 )
 
-router = APIRouter(prefix="/doctors", tags=["Doctors"])
+router = APIRouter(
+    prefix="/doctors",
+    tags=["Doctors"],
+    dependencies=[Depends(require_roles(UserRole.ADMIN))],
+)
 
 
 @router.post("/", response_model=DoctorResponse, status_code=status.HTTP_201_CREATED)

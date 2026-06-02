@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import get_current_user
 from app.routes.dependencies import get_session
 from app.schemas.chat import ChatCreate, ChatResponse
 from app.services.chat import (
@@ -11,7 +12,11 @@ from app.services.chat import (
     update_chat_item,
 )
 
-router = APIRouter(prefix="/chats", tags=["Chats"])
+router = APIRouter(
+    prefix="/chats",
+    tags=["Chats"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("/", response_model=ChatResponse, status_code=status.HTTP_201_CREATED)

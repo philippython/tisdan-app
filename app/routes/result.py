@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from app.dependencies.authentication import get_current_user, require_roles
+from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.result import ResultCreate, ResultResponse
 from app.services.result import (
@@ -11,11 +13,19 @@ from app.services.result import (
     update_result_item,
 )
 
-router = APIRouter(prefix="/results", tags=["Results"])
+router = APIRouter(
+    prefix="/results",
+    tags=["Results"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.post("/", response_model=ResultResponse, status_code=status.HTTP_201_CREATED)
-def create_result(payload: ResultCreate, session: Session = Depends(get_session)):
+def create_result(
+    payload: ResultCreate,
+    session: Session = Depends(get_session),
+    current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR)),
+):
     return create_result_item(session, payload)
 
 
@@ -33,7 +43,12 @@ def read_result(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=ResultResponse)
-def update_result(item_id: str, payload: ResultCreate, session: Session = Depends(get_session)):
+def update_result(
+    item_id: str,
+    payload: ResultCreate,
+    session: Session = Depends(get_session),
+    current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR)),
+):
     item = update_result_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -41,7 +56,11 @@ def update_result(item_id: str, payload: ResultCreate, session: Session = Depend
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_result(item_id: str, session: Session = Depends(get_session)):
+def delete_result(
+    item_id: str,
+    session: Session = Depends(get_session),
+    current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR)),
+):
     deleted = delete_result_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
