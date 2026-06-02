@@ -14,6 +14,7 @@ from .result import router as result_router
 from .staff import router as staff_router
 from .test import router as test_router
 from .user import router as user_router
+from .auth import router as auth_router
 
 router = APIRouter()
 
@@ -32,3 +33,4 @@ router.include_router(result_router)
 router.include_router(staff_router)
 router.include_router(test_router)
 router.include_router(user_router)
+router.include_router(auth_router)
