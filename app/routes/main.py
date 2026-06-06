@@ -15,6 +15,7 @@ from .staff import router as staff_router
 from .test import router as test_router
 from .user import router as user_router
 from .auth import router as auth_router
+from .payment import router as payment_router
 
 router = APIRouter()
 
@@ -34,3 +35,4 @@ router.include_router(staff_router)
 router.include_router(test_router)
 router.include_router(user_router)
 router.include_router(auth_router)
+router.include_router(payment_router)

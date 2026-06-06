@@ -13,6 +13,7 @@ from .message import Message
 from .result import Result
 from .staff import Staff
 from .test import Test
+from .payment import Payment
 
 __all__ = [
     "User",
@@ -30,4 +31,5 @@ __all__ = [
     "Result",
     "Staff",
     "Test",
+    "Payment",
 ]
