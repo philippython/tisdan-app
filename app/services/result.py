@@ -6,6 +6,8 @@ from app.repositories.result import (
     get_result_by_id,
     get_all_result,
     update_result,
+    get_results_by_customer_id,
+    get_results_by_customer_name,
 )
 
 
@@ -29,3 +31,11 @@ def update_result_item(session: Session, item_id: Any, payload: Any):
 
 def delete_result_item(session: Session, item_id: Any):
     return delete_result(session, item_id)
+
+
+def get_results_by_customer(session: Session, customer_id: Any):
+    return get_results_by_customer_id(session, customer_id)
+
+
+def get_results_by_customer_name(session: Session, name: str):
+    return get_results_by_customer_name(session, name)

@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from app.dependencies.authentication import get_current_user, require_roles
+from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
 from app.schemas.result import ResultCreate, ResultResponse
@@ -11,12 +11,13 @@ from app.services.result import (
     get_result,
     list_result,
     update_result_item,
+    get_results_by_customer,
+    get_results_by_customer_name,
 )
 
 router = APIRouter(
     prefix="/results",
     tags=["Results"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -40,6 +41,16 @@ def read_result(item_id: str, session: Session = Depends(get_session)):
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     return item
+
+
+@router.get("/by-customer/{customer_id}", response_model=List[ResultResponse])
+def read_results_by_customer(customer_id: str, session: Session = Depends(get_session)):
+    return get_results_by_customer(session, customer_id)
+
+
+@router.get("/by-customer-name/", response_model=List[ResultResponse])
+def read_results_by_customer_name(name: str, session: Session = Depends(get_session)):
+    return get_results_by_customer_name(session, name)
 
 
 @router.put("/{item_id}", response_model=ResultResponse)

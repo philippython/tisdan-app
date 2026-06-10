@@ -3,8 +3,8 @@ import uuid
 from sqlmodel import SQLModel, Field
 
 
-class Client(SQLModel, table=True):
-    __tablename__ = "clients"
+class Patient(SQLModel, table=True):
+    __tablename__ = "patients"
 
     id: uuid.UUID = Field(
         default_factory=uuid.uuid4,

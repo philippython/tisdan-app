@@ -16,7 +16,6 @@ from app.services.user import (
 router = APIRouter(
     prefix="/users",
     tags=["Users"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN))],
 )
 
 
@@ -26,12 +25,12 @@ def create_user(payload: UserCreate, session: Session = Depends(get_session)):
 
 
 @router.get("/", response_model=List[UserResponse])
-def read_users(session: Session = Depends(get_session)):
+def read_users(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return list_user(session)
 
 
 @router.get("/{item_id}", response_model=UserResponse)
-def read_user(item_id: str, session: Session = Depends(get_session)):
+def read_user(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = get_user(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -39,7 +38,7 @@ def read_user(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=UserResponse)
-def update_user(item_id: str, payload: UserCreate, session: Session = Depends(get_session)):
+def update_user(item_id: str, payload: UserCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_user_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_user(item_id: str, payload: UserCreate, session: Session = Depends(ge
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(item_id: str, session: Session = Depends(get_session)):
+def delete_user(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     deleted = delete_user_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

@@ -32,3 +32,7 @@ class Branch(SQLModel, table=True):
     schedules: List["BranchSchedule"] = Relationship(
         back_populates="branch"
     )
+
+    tests: List["Test"] = Relationship(
+        back_populates="branch"
+    )

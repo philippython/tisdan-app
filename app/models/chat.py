@@ -17,8 +17,8 @@ class Chat(SQLModel, table=True):
         foreign_key="doctors.id"
     )
 
-    client_id: uuid.UUID = Field(
-        foreign_key="clients.id"
+    customer_id: uuid.UUID = Field(
+        foreign_key="customers.id"
     )
 
     created_at: datetime = Field(

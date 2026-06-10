@@ -16,12 +16,11 @@ from app.services.branch import (
 router = APIRouter(
     prefix="/branches",
     tags=["Branches"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))],
 )
 
 
 @router.post("/", response_model=BranchResponse, status_code=status.HTTP_201_CREATED)
-def create_branch(payload: BranchCreate, session: Session = Depends(get_session)):
+def create_branch(payload: BranchCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     return create_branch_item(session, payload)
 
 
@@ -39,7 +38,7 @@ def read_branch(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=BranchResponse)
-def update_branch(item_id: str, payload: BranchCreate, session: Session = Depends(get_session)):
+def update_branch(item_id: str, payload: BranchCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = update_branch_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_branch(item_id: str, payload: BranchCreate, session: Session = Depend
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_branch(item_id: str, session: Session = Depends(get_session)):
+def delete_branch(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     deleted = delete_branch_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

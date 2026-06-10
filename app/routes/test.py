@@ -16,12 +16,11 @@ from app.services.test import (
 router = APIRouter(
     prefix="/tests",
     tags=["Tests"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))],
 )
 
 
 @router.post("/", response_model=TestResponse, status_code=status.HTTP_201_CREATED)
-def create_test(payload: TestCreate, session: Session = Depends(get_session)):
+def create_test(payload: TestCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return create_test_item(session, payload)
 
 
@@ -39,7 +38,7 @@ def read_test(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=TestResponse)
-def update_test(item_id: str, payload: TestCreate, session: Session = Depends(get_session)):
+def update_test(item_id: str, payload: TestCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = update_test_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_test(item_id: str, payload: TestCreate, session: Session = Depends(ge
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_test(item_id: str, session: Session = Depends(get_session)):
+def delete_test(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     deleted = delete_test_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

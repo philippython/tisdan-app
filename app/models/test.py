@@ -1,5 +1,7 @@
 import uuid
-from sqlmodel import SQLModel, Field
+from typing import Optional
+
+from sqlmodel import SQLModel, Field, Relationship
 
 
 class Test(SQLModel, table=True):
@@ -17,3 +19,12 @@ class Test(SQLModel, table=True):
     description: str
 
     price: float
+
+    branch_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="branches.id",
+    )
+
+    branch: Optional["Branch"] = Relationship(
+        back_populates="tests"
+    )

@@ -16,12 +16,11 @@ from app.services.doctor import (
 router = APIRouter(
     prefix="/doctors",
     tags=["Doctors"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN))],
 )
 
 
 @router.post("/", response_model=DoctorResponse, status_code=status.HTTP_201_CREATED)
-def create_doctor(payload: DoctorCreate, session: Session = Depends(get_session)):
+def create_doctor(payload: DoctorCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return create_doctor_item(session, payload)
 
 
@@ -39,7 +38,7 @@ def read_doctor(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=DoctorResponse)
-def update_doctor(item_id: str, payload: DoctorCreate, session: Session = Depends(get_session)):
+def update_doctor(item_id: str, payload: DoctorCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_doctor_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_doctor(item_id: str, payload: DoctorCreate, session: Session = Depend
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_doctor(item_id: str, session: Session = Depends(get_session)):
+def delete_doctor(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     deleted = delete_doctor_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

@@ -33,6 +33,15 @@ class Booking(SQLModel, table=True):
         foreign_key="branches.id"
     )
 
+    customer_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="customers.id",
+    )
+
     user: Optional["User"] = Relationship(
+        back_populates="bookings"
+    )
+
+    customer: Optional["Customer"] = Relationship(
         back_populates="bookings"
     )

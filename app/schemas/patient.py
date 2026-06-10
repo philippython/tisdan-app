@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from uuid import UUID
 
 
-class ClientCreate(BaseModel):
+class PatientCreate(BaseModel):
     gender: str
     age: int
-    user_id: str
+    user_id: UUID
 
 
-class ClientResponse(BaseModel):
+class PatientResponse(BaseModel):
     id: UUID
     gender: str
     age: int

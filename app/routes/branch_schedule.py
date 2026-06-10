@@ -16,7 +16,6 @@ from app.services.branch_schedule import (
 router = APIRouter(
     prefix="/branch-schedules",
     tags=["BranchSchedules"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))],
 )
 
 
@@ -39,7 +38,7 @@ def read_branch_schedule(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=BranchScheduleResponse)
-def update_branch_schedule(item_id: str, payload: BranchScheduleCreate, session: Session = Depends(get_session)):
+def update_branch_schedule(item_id: str, payload: BranchScheduleCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = update_branch_schedule_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_branch_schedule(item_id: str, payload: BranchScheduleCreate, session:
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_branch_schedule(item_id: str, session: Session = Depends(get_session)):
+def delete_branch_schedule(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     deleted = delete_branch_schedule_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

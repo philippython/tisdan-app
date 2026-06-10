@@ -21,7 +21,7 @@ class Message(SQLModel, table=True):
         index=True
     )
 
-    sender_role: str  # DOCTOR or CLIENT
+    sender_role: str  # DOCTOR or CUSTOMER
 
     content: str
 
