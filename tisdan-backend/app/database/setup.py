@@ -8,9 +8,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def init() -> None:
+def create_db_and_tables() -> None:
     with Session(engine) as session:
         init_db(session)
+
+
+def init() -> None:
+    create_db_and_tables()
 
 
 def main() -> None:

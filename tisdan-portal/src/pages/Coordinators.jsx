@@ -108,7 +108,12 @@ export default function Coordinators() {
         {
           key: "user_id",
           label: "User",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+          render: (v, row) =>
+            row.user_full_name ? (
+              row.user_full_name
+            ) : (
+              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+            ),
         },
       ]}
       formFields={[

@@ -3,6 +3,16 @@ import { useApi } from "../hooks/useApi";
 import { Badge } from "../components/ui";
 import { shortId, fmtShort } from "../lib/theme";
 
+const DAYS = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+];
+
 // ── Staff ────────────────────────────────────
 export function Staff() {
   const { request } = useApi();
@@ -21,7 +31,12 @@ export function Staff() {
         {
           key: "user_id",
           label: "User",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+          render: (v, row) =>
+            row.user_full_name ? (
+              row.user_full_name
+            ) : (
+              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+            ),
         },
       ]}
       formFields={[
@@ -64,7 +79,12 @@ export function Patients() {
         {
           key: "user_id",
           label: "User",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+          render: (v, row) =>
+            row.user_full_name ? (
+              row.user_full_name
+            ) : (
+              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+            ),
         },
       ]}
       formFields={[
@@ -99,7 +119,7 @@ export function Customers() {
       endpoint="/customers/"
       request={request}
       canEdit={true}
-      canDelete={false}
+      canDelete={true}
       columns={[
         {
           key: "id",
@@ -219,8 +239,37 @@ export function Branches() {
           placeholder: "e.g. LG-01",
         },
         { name: "address", label: "Address", required: true },
+        {
+          name: "schedule_day",
+          label: "Schedule Day",
+          type: "select",
+          options: DAYS,
+          nullable: true,
+          nullLabel: "— No schedule —",
+        },
+        {
+          name: "schedule_opening_time",
+          label: "Opening Time",
+          type: "time",
+          nullable: true,
+          placeholder: "HH:MM",
+        },
+        {
+          name: "schedule_closing_time",
+          label: "Closing Time",
+          type: "time",
+          nullable: true,
+          placeholder: "HH:MM",
+        },
       ]}
-      defaultForm={{ name: "", branch_code: "", address: "" }}
+      defaultForm={{
+        name: "",
+        branch_code: "",
+        address: "",
+        schedule_day: "",
+        schedule_opening_time: "",
+        schedule_closing_time: "",
+      }}
     />
   );
 }
@@ -345,7 +394,12 @@ export function Doctors() {
         {
           key: "user_id",
           label: "User",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+          render: (v, row) =>
+            row.user_full_name ? (
+              row.user_full_name
+            ) : (
+              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+            ),
         },
       ]}
       formFields={[

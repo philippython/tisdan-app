@@ -94,6 +94,10 @@ class Settings(BaseSettings):
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
+    # External bot service (WhatsApp) base URL, e.g. https://bot.example.com
+    TISDAN_BOT_URL: HttpUrl | None = None
+    PAYSTACK_SECRET_KEY: str | None = None
+    PAYSTACK_BASE_URL: HttpUrl = "https://api.paystack.co"
     # FIRST_SUPERUSER: EmailStr
     # FIRST_SUPERUSER_PASSWORD: str
 

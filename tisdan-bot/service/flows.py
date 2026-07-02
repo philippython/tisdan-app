@@ -9,10 +9,13 @@ from .data_provider import (
     fetch_test_catalog,
     validate_coordinator,
     register_referral,
+    create_booking,
+    fetch_branch_schedule,
 )
 from .sessions import get_session, reset_to_main_menu, update_state
 from .twilio_client import send_whatsapp_message
 from typing import Optional
+from datetime import datetime, timedelta
 
 
 
@@ -98,18 +101,23 @@ async def booking_branch_text() -> str:
     return "".join(lines)
 
 
-async def booking_test_text(branch_name: str) -> str:
-    tests = await fetch_test_catalog()
+async def booking_day_text(branch_id: str) -> str:
+    """Show available days and times for the selected branch."""
+    schedules = await fetch_branch_schedule(branch_id)
     lines = [
-        f"You selected *{branch_name}*. ✅\n\n"
-        "What test are you coming for?\n\n"
+        "Great! When would you like to visit?\n\n"
+        "Choose a day:\n\n"
     ]
-    for i, test in enumerate(tests, start=1):
-        name = test.get("name", "Unknown")
-        price = test.get("price", "Contact for price")
-        lines.append(f"*{i}* — {name} — {price}\n")
-    lines.append("\nReply with the number of the test you want.\n")
-    lines.append("Reply *9* to type a custom test name, *10* to view the full price list, or *0* to go back.")
+    
+    for i, sched in enumerate(schedules, start=1):
+        day = sched.get("day", "Unknown")
+        opening = sched.get("opening_time", "07:00").split(":")[:2]  # Get HH:MM
+        closing = sched.get("closing_time", "19:00").split(":")[:2]
+        opening_str = ":".join(opening)
+        closing_str = ":".join(closing)
+        lines.append(f"*{i}* — {day} ({opening_str} – {closing_str})\n")
+    
+    lines.append("\nReply with a number, or *0* to go back.")
     return "".join(lines)
 
 
@@ -119,8 +127,9 @@ def confirm_booking_text(session: dict[str, str]) -> str:
         f"📍 *Branch:* {session['branch_name']}\n"
         f"🧪 *Test:* {session['test_name']}\n"
         f"💰 *Price:* {session['test_price']}\n"
-        f"👤 *Name:* {session['patient_name']}\n"
-        f"📅 *Date:* {session['appointment_date']}\n\n"
+        f"📅 *Day:* {session['appointment_day']}\n"
+        f"🕐 *Hours:* {session['appointment_hours']}\n"
+        f"👤 *Name:* {session['patient_name']}\n\n"
         "Please reply:\n"
         "*1* — Confirm this booking ✅\n"
         "*2* — Change something ✏️\n"
@@ -133,7 +142,7 @@ def booking_confirmation_text(session: dict[str, str]) -> str:
         "✅ *Booking Confirmed!*\n\n"
         f"Your booking reference is: *{session['booking_ref']}*\n\n"
         f"📍 Tisdan Care, {session['branch_name']}\n"
-        f"📅 {session['appointment_date']} — walk in anytime from 7am\n"
+        f"📅 {session['appointment_day']} — {session['appointment_hours']}\n"
         f"🧪 {session['test_name']}\n"
         f"💰 {session['test_price']} (pay at reception)\n\n"
         "*Please bring this reference number.* No fasting required for malaria test.\n\n"
@@ -307,6 +316,7 @@ async def process_incoming_message(from_phone: str, body: str) -> Response:
         "booking_branch": _handle_booking_branch,
         "booking_test": _handle_booking_test,
         "booking_custom_test": _handle_booking_custom_test,
+        "booking_day": _handle_booking_day,
         "booking_name": _handle_booking_name,
         "booking_date": _handle_booking_date,
         "booking_confirm": _handle_booking_confirm,
@@ -394,11 +404,8 @@ async def _handle_booking_test(session: dict, message: str, normalized: str, pho
     if normalized.isdigit() and normalized in valid_choices:
         idx = int(normalized) - 1
         test = tests[idx]
-        update_state(session, "booking_name", test_name=test.get("name"), test_price=str(test.get("price")))
-        return build_response(
-            f"Got it — *{test.get('name')}* at *{session.get('branch_name','Selected branch')}*. ✅\n\n"
-            "Please send me your *full name* as it should appear on your result."
-        )
+        update_state(session, "booking_day", test_name=test.get("name"), test_price=str(test.get("price")))
+        return build_response(await booking_day_text(session.get("branch_id")))
 
     return build_response(
         "Please choose a valid test number: " + ", ".join(valid_choices) + ".\n"
@@ -407,34 +414,113 @@ async def _handle_booking_test(session: dict, message: str, normalized: str, pho
 
 
 async def _handle_booking_custom_test(session: dict, message: str, normalized: str, phone: Optional[str] = None) -> Response:
-    update_state(session, "booking_name", test_name=message, test_price="Contact front desk for price")
+    update_state(session, "booking_day", test_name=message, test_price="Contact front desk for price")
     return build_response(
         f"Got it — *{message}* at *{session['branch_name']}*. ✅\n\n"
-        "Please send me your *full name* as it should appear on your result."
+        "When would you like to visit?\n\n" + await booking_day_text(session.get("branch_id"))
+    )
+
+
+async def _handle_booking_day(session: dict, message: str, normalized: str, phone: Optional[str] = None) -> Response:
+    """Handle day selection with time slots."""
+    schedules = await fetch_branch_schedule(session.get("branch_id"))
+    valid_choices = [str(i) for i in range(1, len(schedules) + 1)]
+
+    if normalized.isdigit() and normalized in valid_choices:
+        idx = int(normalized) - 1
+        schedule = schedules[idx]
+        day = schedule.get("day", "Unknown")
+        opening = schedule.get("opening_time", "07:00").split(":")[:2]
+        closing = schedule.get("closing_time", "19:00").split(":")[:2]
+        hours_str = ":".join(opening) + " – " + ":".join(closing)
+        
+        update_state(session, "booking_name", appointment_day=day, appointment_hours=hours_str)
+        return build_response(
+            f"Perfect! Booking for *{day}* ({hours_str}). ✅\n\n"
+            "Please send me your *full name* as it should appear on your result."
+        )
+
+    return build_response(
+        "Please choose a valid day number: " + ", ".join(valid_choices) + ".\n"
+        "Reply 0 to return to the main menu."
     )
 
 
 async def _handle_booking_name(session: dict, message: str, normalized: str, phone: Optional[str] = None) -> Response:
-    update_state(session, "booking_date", patient_name=message)
-    return build_response(
-        f"Thank you, *{message}*. 😊\n\n"
-        "What *date* would you prefer? You can:\n"
-        "— Type a date (e.g. 14 April 2026)\n"
-        "— Type today or tomorrow\n"
-        "— Type walk-in if you want to come anytime without a fixed time\n\n"
-        "We open Mon–Sat at 7am."
-    )
+    update_state(session, "booking_confirm", patient_name=message, booking_ref="TSC-20260414-0047")
+    return build_response(confirm_booking_text(session))
 
 
 async def _handle_booking_date(session: dict, message: str, normalized: str, phone: Optional[str] = None) -> Response:
-    update_state(session, "booking_confirm", appointment_date=message, booking_ref="TSC-20260414-0047")
+    # Validate user-provided date input. Accept formats like:
+    # - '14 April 2026', '14 Apr 2026'
+    # - '2026-04-14', '14/04/2026', '14-04-2026'
+    # - 'today', 'tomorrow'
+    # - 'walk-in' / 'walk in'
+
+    def _parse_user_date(text: str):
+        t = text.strip().lower()
+        if t in ("walk-in", "walk in", "walkin"):
+            return "Walk-in"
+        if t == "today":
+            return datetime.utcnow().date()
+        if t == "tomorrow":
+            return (datetime.utcnow() + timedelta(days=1)).date()
+
+        formats = [
+            "%d %B %Y",
+            "%d %b %Y",
+            "%Y-%m-%d",
+            "%d/%m/%Y",
+            "%d-%m-%Y",
+        ]
+        for fmt in formats:
+            try:
+                parsed = datetime.strptime(text.strip(), fmt).date()
+                return parsed
+            except Exception:
+                continue
+        return None
+
+    parsed = _parse_user_date(message)
+    if parsed is None:
+        return build_response(
+            "I couldn't understand that date. Please reply with a date like '14 April 2026', '2026-04-14', 'today', 'tomorrow', or 'walk-in'.\n\nReply 0 to cancel."
+        )
+
+    # If walk-in, store a human-friendly label
+    if isinstance(parsed, str) and parsed == "Walk-in":
+        appointment_label = "Walk-in"
+    else:
+        # parsed is a date object
+        if parsed < datetime.utcnow().date():
+            return build_response("Please choose today or a future date.")
+        appointment_label = parsed.strftime("%d %B %Y")
+
+    update_state(session, "booking_confirm", appointment_date=appointment_label, booking_ref="TSC-20260414-0047")
     return build_response(confirm_booking_text(session))
 
 
 async def _handle_booking_confirm(session: dict, message: str, normalized: str, phone: Optional[str] = None) -> Response:
     if normalized == "1":
-        update_state(session, "main_menu")
-        return build_response(booking_confirmation_text(session))
+        # Attempt to create the booking
+        booking = await create_booking(
+            phone=phone,
+            name=session.get("patient_name", "Unknown"),
+            branch_id=session.get("branch_id"),
+            test_name=session.get("test_name", ""),
+            appointment_day=session.get("appointment_day", "Monday"),
+            appointment_hours=session.get("appointment_hours", "07:00 – 19:00")
+        )
+        
+        if booking and booking.get("id"):
+            session["booking_ref"] = booking["id"]
+            update_state(session, "main_menu")
+            return build_response(booking_confirmation_text(session))
+
+        return build_response(
+            "Sorry, I couldn't save your booking right now. Please try again or contact the clinic at +2347033444515."
+        )
     if normalized == "2":
         update_state(session, "booking_branch")
         return build_response("No problem — let's restart your booking.\n\n" + await booking_branch_text())

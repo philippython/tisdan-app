@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlmodel
+pydantic
+pydantic-settings
+typing-extensions
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+requests
+email-validator
+python-dotenv

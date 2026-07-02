@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 from uuid import UUID
 
 
@@ -13,5 +14,6 @@ class PatientResponse(BaseModel):
     gender: str
     age: int
     user_id: UUID
+    user_full_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

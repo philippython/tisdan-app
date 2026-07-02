@@ -21,7 +21,8 @@ class Booking(SQLModel, table=True):
         default=BookingStatus.PENDING
     )
 
-    user_id: uuid.UUID = Field(
+    user_id: Optional[uuid.UUID] = Field(
+        default=None,
         foreign_key="users.id"
     )
 

@@ -26,6 +26,7 @@ const NAV = {
       items: [
         { to: "/tests", label: "Diagnostic Tests", icon: "🔬" },
         { to: "/branches", label: "Branches", icon: "🏥" },
+        { to: "/branch-schedules", label: "Schedules", icon: "⏰" },
       ],
     },
     {
@@ -58,7 +59,10 @@ const NAV = {
     },
     {
       section: "Catalogue",
-      items: [{ to: "/tests", label: "Diagnostic Tests", icon: "🔬" }],
+      items: [
+        { to: "/tests", label: "Diagnostic Tests", icon: "🔬" },
+        { to: "/branch-schedules", label: "Schedules", icon: "⏰" },
+      ],
     },
     {
       section: "Communications",

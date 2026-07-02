@@ -16,17 +16,16 @@ from app.services.staff import (
 router = APIRouter(
     prefix="/staff",
     tags=["Staff"],
-    dependencies=[Depends(require_roles(UserRole.ADMIN))],
 )
 
 
 @router.post("/", response_model=StaffResponse, status_code=status.HTTP_201_CREATED)
-def create_staff(payload: StaffCreate, session: Session = Depends(get_session)):
+def create_staff(payload: StaffCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return create_staff_item(session, payload)
 
 
 @router.get("/", response_model=List[StaffResponse])
-def read_staffs(session: Session = Depends(get_session)):
+def read_staffs(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     return list_staff(session)
 
 
@@ -39,7 +38,7 @@ def read_staff(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=StaffResponse)
-def update_staff(item_id: str, payload: StaffCreate, session: Session = Depends(get_session)):
+def update_staff(item_id: str, payload: StaffCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_staff_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -47,7 +46,7 @@ def update_staff(item_id: str, payload: StaffCreate, session: Session = Depends(
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_staff(item_id: str, session: Session = Depends(get_session)):
+def delete_staff(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     deleted = delete_staff_item(session, item_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

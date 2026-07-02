@@ -1,5 +1,6 @@
 from typing import Any
 from sqlmodel import Session
+from app.models import User
 from app.repositories.coordinator import (
     create_coordinator,
     delete_coordinator,
@@ -9,12 +10,25 @@ from app.repositories.coordinator import (
 )
 
 
+def _enrich_coordinator(session: Session, item):
+    if item is None:
+        return item
+
+    result = item.dict()
+    if getattr(item, "user_id", None):
+        user = session.get(User, item.user_id)
+        if user and getattr(user, "full_name", None):
+            result["user_full_name"] = user.full_name
+
+    return result
+
+
 def list_coordinator(session: Session):
-    return get_all_coordinator(session)
+    return [_enrich_coordinator(session, item) for item in get_all_coordinator(session)]
 
 
 def get_coordinator(session: Session, item_id: Any):
-    return get_coordinator_by_id(session, item_id)
+    return _enrich_coordinator(session, get_coordinator_by_id(session, item_id))
 
 
 def create_coordinator_item(session: Session, payload: Any):

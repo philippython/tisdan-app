@@ -78,7 +78,7 @@ export default function SelectSearch({
   );
 
   const select = (item) => {
-    const id = item ? item.id : "";
+    const id = item ? item.id : null;
     const lbl = item ? getLabel(item) : nullLabel;
     onChange(name, id);
     setDisplayVal(item ? lbl : "");

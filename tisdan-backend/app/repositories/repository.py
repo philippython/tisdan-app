@@ -26,7 +26,10 @@ def get_item_by_id(session: Session, model: Type[ModelType], item_id: Any) -> Op
 
 
 def create_item(session: Session, model: Type[ModelType], data: Dict[str, Any]) -> ModelType:
-    item = model(**data)
+    # filter out any keys not declared on the model to avoid TypeErrors
+    allowed = set(getattr(model, "__fields__", {}).keys())
+    filtered = {k: v for k, v in data.items() if k in allowed}
+    item = model(**filtered)
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -37,8 +40,11 @@ def update_item(session: Session, model: Type[ModelType], item_id: Any, data: Di
     item = session.get(model, _to_uuid(item_id))
     if item is None:
         return None
+    # only update attributes that exist on the model
+    allowed = set(getattr(model, "__fields__", {}).keys())
     for key, value in data.items():
-        setattr(item, key, value)
+        if key in allowed:
+            setattr(item, key, value)
     session.add(item)
     session.commit()
     session.refresh(item)

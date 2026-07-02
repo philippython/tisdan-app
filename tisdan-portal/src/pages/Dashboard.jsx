@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
+import { useAuth } from "../hooks/useAuth";
 import { StatCard, Card, CardHeader, Spinner, Badge } from "../components/ui";
 import { C, fmtShort } from "../lib/theme";
 
@@ -48,31 +49,59 @@ export default function Dashboard() {
   const [pendingResults, setPendingResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const { user } = useAuth();
+
   useEffect(() => {
     (async () => {
       try {
-        const [bookings, results, customers, coordinators] = await Promise.all([
+        const requests = [
           request("GET", "/bookings/"),
           request("GET", "/results/"),
           request("GET", "/customers/"),
-          request("GET", "/coordinators/"),
-        ]);
+        ];
+        if (user?.role === "ADMIN" || user?.role === "COORDINATOR") {
+          requests.push(request("GET", "/coordinators/"));
+        } else {
+          requests.push(Promise.resolve([]));
+        }
+
+        const [bookings, results, customers, coordinators] =
+          await Promise.allSettled(requests);
+
+        const safeBookings =
+          bookings.status === "fulfilled" ? bookings.value : [];
+        const safeResults = results.status === "fulfilled" ? results.value : [];
+        const safeCustomers =
+          customers.status === "fulfilled" ? customers.value : [];
+        const safeCoordinators =
+          coordinators.status === "fulfilled" ? coordinators.value : [];
+
         setStats({
-          bookings: bookings.length,
-          results: results.length,
-          customers: customers.length,
-          coordinators: coordinators.length,
-          pending: bookings.filter((b) => b.status === "PENDING").length,
-          pendingResults: results.filter((r) => r.status === "PENDING").length,
+          bookings: safeBookings.length,
+          results: safeResults.length,
+          customers: safeCustomers.length,
+          coordinators: safeCoordinators.length,
+          pending: safeBookings.filter((b) => b.status === "PENDING").length,
+          pendingResults: safeResults.filter((r) => r.status === "PENDING")
+            .length,
         });
-        setRecentBookings([...bookings].reverse().slice(0, 8));
+        setRecentBookings([...safeBookings].reverse().slice(0, 8));
         setPendingResults(
-          results.filter((r) => r.status === "PENDING").slice(0, 6),
+          safeResults.filter((r) => r.status === "PENDING").slice(0, 6),
         );
-      } catch {}
+      } catch (ex) {
+        setStats({
+          bookings: 0,
+          results: 0,
+          customers: 0,
+          coordinators: 0,
+          pending: 0,
+          pendingResults: 0,
+        });
+      }
       setLoading(false);
     })();
-  }, [request]);
+  }, [request, user]);
 
   if (loading) return <Spinner />;
 

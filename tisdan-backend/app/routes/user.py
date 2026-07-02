@@ -25,12 +25,12 @@ def create_user(payload: UserCreate, session: Session = Depends(get_session)):
 
 
 @router.get("/", response_model=List[UserResponse])
-def read_users(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def read_users(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     return list_user(session)
 
 
 @router.get("/{item_id}", response_model=UserResponse)
-def read_user(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def read_user(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = get_user(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

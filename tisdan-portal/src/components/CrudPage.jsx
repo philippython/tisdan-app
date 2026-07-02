@@ -130,6 +130,7 @@ export default function CrudPage({
   canDelete = true,
   extraActions,
   beforeTable,
+  onCreated,
 }) {
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState("loading"); // 'loading' | 'ok' | 'error'
@@ -173,16 +174,28 @@ export default function CrudPage({
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+
+    const payload = { ...form };
+    formFields.forEach((field) => {
+      if (field.nullable && payload[field.name] === "") {
+        payload[field.name] = null;
+      }
+    });
+
     try {
+      let createdItem = null;
       if (modal.mode === "create") {
-        await request("POST", endpoint, form);
+        createdItem = await request("POST", endpoint, payload);
         show("Created successfully");
       } else {
-        await request("PUT", `${endpoint}${modal.data.id}/`, form);
+        await request("PUT", `${endpoint}${modal.data.id}/`, payload);
         show("Updated successfully");
       }
       setModal(null);
       load();
+      if (createdItem && typeof onCreated === "function") {
+        onCreated(createdItem, form);
+      }
     } catch (ex) {
       show(ex.message, "error");
     }

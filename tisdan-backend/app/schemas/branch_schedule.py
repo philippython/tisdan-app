@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import time
+from typing import Optional
 from uuid import UUID
 
 
@@ -16,5 +17,6 @@ class BranchScheduleResponse(BaseModel):
     opening_time: time
     closing_time: time
     branch_id: UUID
+    branch_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

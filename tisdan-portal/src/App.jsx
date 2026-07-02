@@ -7,6 +7,7 @@ import Bookings from "./pages/Bookings";
 import Results from "./pages/Results";
 import Coordinators from "./pages/Coordinators";
 import Broadcast from "./pages/Broadcast";
+import BranchSchedules from "./pages/BranchSchedules";
 import {
   Staff,
   Patients,
@@ -54,6 +55,7 @@ function ProtectedRoutes() {
         <Route path="customers" element={<Customers />} />
         <Route path="tests" element={<Tests />} />
         <Route path="branches" element={<Branches />} />
+        <Route path="branch-schedules" element={<BranchSchedules />} />
         <Route path="payments" element={<Payments />} />
         <Route path="users" element={<Users />} />
         <Route path="doctors" element={<Doctors />} />

@@ -25,12 +25,12 @@ def create_booking(payload: BookingCreate, session: Session = Depends(get_sessio
 
 
 @router.get("/", response_model=List[BookingResponse])
-def read_bookings(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
+def read_bookings(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return list_booking(session)
 
 
 @router.get("/{item_id}", response_model=BookingResponse)
-def read_booking(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
+def read_booking(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     item = get_booking(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
