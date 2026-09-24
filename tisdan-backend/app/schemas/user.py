@@ -23,3 +23,13 @@ class UserResponse(BaseModel):
     branch_id: Optional[UUID] = None
 
     model_config = {"from_attributes": True}
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    # blank or omitted keeps the current password
+    password: Optional[str] = None
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    role: Optional[UserRole] = None
+    branch_id: Optional[UUID] = None

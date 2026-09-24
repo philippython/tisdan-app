@@ -1,21 +1,25 @@
-# FastAPI + Twilio SMS Reply
+# Tisdan WhatsApp Bot
 
-A minimal FastAPI application that replies to incoming Twilio SMS messages.
+FastAPI service that answers patients and coordinators on WhatsApp (via Twilio) and delivers messages on behalf of the backend. See [../DEPLOYMENT.md](../DEPLOYMENT.md) for the full setup.
 
-## Install
+## Run locally
 
 ```bash
+cp .env.example .env        # set API_BASE, BOT_API_KEY and Twilio credentials
 pip install -r requirements.txt
+uvicorn main:app --port 8001 --reload
 ```
 
-## Run
+## Endpoints
+
+- `POST /sms`: Twilio webhook for incoming WhatsApp messages. Set it in the Twilio Console as `https://<bot-host>/sms` (POST).
+- `POST /send`: internal endpoint the backend calls to push a message. Requires the `X-Bot-Key` header.
+- `GET /health`: liveness check.
+
+## Tests
 
 ```bash
-uvicorn app:app --reload
+python -m unittest discover -s tests -v
 ```
 
-## Configure Twilio
-
-1. Expose your app with a public URL (for example using ngrok).
-2. In Twilio Console, set the SMS webhook for your phone number to `POST https://<your-host>/sms`.
-3. When a message arrives, the app replies with a simple acknowledgement.
+This starts the real backend (from `../tisdan-backend`) on a temporary database and runs complete WhatsApp conversations against it.

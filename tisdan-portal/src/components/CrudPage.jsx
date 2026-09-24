@@ -131,8 +131,10 @@ export default function CrudPage({
   extraActions,
   beforeTable,
   onCreated,
+  searchKeys,
 }) {
   const [rows, setRows] = useState([]);
+  const [query, setQuery] = useState("");
   const [status, setStatus] = useState("loading"); // 'loading' | 'ok' | 'error'
   const [errorMsg, setErrorMsg] = useState("");
   const [modal, setModal] = useState(null);
@@ -162,7 +164,15 @@ export default function CrudPage({
   };
 
   const openEdit = (row) => {
-    setForm({ ...defaultForm, ...row });
+    const values = { ...defaultForm };
+    formFields.forEach((f) => {
+      if (f.omitIfEmpty) return; // e.g. password: blank means "keep current"
+      if (row[f.name] !== undefined) values[f.name] = row[f.name] ?? "";
+      if (f.type === "datetime-local" && values[f.name]) {
+        values[f.name] = String(values[f.name]).slice(0, 16);
+      }
+    });
+    setForm(values);
     setModal({ mode: "edit", data: row });
   };
 
@@ -175,11 +185,17 @@ export default function CrudPage({
     e.preventDefault();
     setSaving(true);
 
-    const payload = { ...form };
+    // only send the fields this form manages
+    const payload = {};
     formFields.forEach((field) => {
-      if (field.nullable && payload[field.name] === "") {
-        payload[field.name] = null;
+      if (modal.mode === "edit" && field.createOnly) return;
+      let value = form[field.name];
+      if (value === "" || value === undefined) {
+        if (field.omitIfEmpty) return;
+        if (field.nullable) value = null;
+        else if (!field.required) return;
       }
+      payload[field.name] = value;
     });
 
     try {
@@ -188,7 +204,7 @@ export default function CrudPage({
         createdItem = await request("POST", endpoint, payload);
         show("Created successfully");
       } else {
-        await request("PUT", `${endpoint}${modal.data.id}/`, payload);
+        await request("PUT", `${endpoint}${modal.data.id}`, payload);
         show("Updated successfully");
       }
       setModal(null);
@@ -205,7 +221,7 @@ export default function CrudPage({
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
     try {
-      await request("DELETE", `${endpoint}${id}/`);
+      await request("DELETE", `${endpoint}${id}`);
       show("Deleted");
       load();
     } catch (ex) {
@@ -214,6 +230,19 @@ export default function CrudPage({
   };
 
   const singularTitle = title.replace(/s$/, "");
+  const isEdit = modal?.mode === "edit";
+
+  const q = query.trim().toLowerCase();
+  const visibleRows =
+    q && searchKeys
+      ? rows.filter((row) =>
+          searchKeys.some((k) =>
+            String(row[k] ?? "")
+              .toLowerCase()
+              .includes(q),
+          ),
+        )
+      : rows;
 
   const renderBody = () => {
     if (status === "loading") return <Spinner />;
@@ -256,10 +285,13 @@ export default function CrudPage({
         />
       );
 
+    if (visibleRows.length === 0)
+      return <EmptyState msg={`No ${title.toLowerCase()} match "${query}".`} />;
+
     return (
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={visibleRows}
         onEdit={openEdit}
         onDelete={handleDelete}
         canEdit={canEdit}
@@ -276,7 +308,24 @@ export default function CrudPage({
         <CardHeader
           title={title}
           action={
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {searchKeys && (
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search…"
+                  style={{
+                    padding: "7px 12px",
+                    borderRadius: 6,
+                    border: `1px solid ${C.border}`,
+                    fontSize: 13,
+                    background: C.bg,
+                    color: C.text,
+                    outline: "none",
+                    minWidth: 180,
+                  }}
+                />
+              )}
               {extraActions}
               {canCreate && (
                 <Btn onClick={openCreate}>+ New {singularTitle}</Btn>
@@ -298,17 +347,21 @@ export default function CrudPage({
         onClose={() => setModal(null)}
       >
         <form onSubmit={handleSave}>
-          {formFields.map((f) =>
-            f.type === "select-search" ? (
+          {formFields.map((f) => {
+            if (isEdit && f.createOnly) return null;
+            // omitIfEmpty fields (e.g. password) are optional when editing
+            const required = f.required && !(isEdit && f.omitIfEmpty);
+            const label = (isEdit && f.editLabel) || f.label;
+            return f.type === "select-search" ? (
               <SelectSearch
                 key={f.name}
-                label={f.label}
+                label={label}
                 name={f.name}
                 value={form[f.name]}
                 onChange={(name, id) =>
                   setForm((prev) => ({ ...prev, [name]: id }))
                 }
-                required={f.required}
+                required={required}
                 placeholder={f.placeholder}
                 endpoint={f.endpoint}
                 request={request}
@@ -319,18 +372,18 @@ export default function CrudPage({
             ) : (
               <Field
                 key={f.name}
-                label={f.label}
+                label={label}
                 name={f.name}
                 value={form[f.name]}
                 onChange={handleChange}
                 type={f.type}
                 options={f.options}
-                required={f.required}
+                required={required}
                 placeholder={f.placeholder}
                 rows={f.rows}
               />
-            ),
-          )}
+            );
+          })}
           <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
             <Btn type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save"}

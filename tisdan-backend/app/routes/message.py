@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from app.dependencies.authentication import get_current_user
 from app.routes.dependencies import get_session
-from app.schemas.message import MessageCreate, MessageResponse
+from app.schemas.message import MessageCreate, MessageUpdate, MessageResponse
 from app.services.message import (
     create_message_item,
     delete_message_item,
@@ -38,7 +38,7 @@ def read_message(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=MessageResponse)
-def update_message(item_id: str, payload: MessageCreate, session: Session = Depends(get_session)):
+def update_message(item_id: str, payload: MessageUpdate, session: Session = Depends(get_session)):
     item = update_message_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

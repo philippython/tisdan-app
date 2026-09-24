@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.branch import BranchCreate, BranchResponse
+from app.schemas.branch import BranchCreate, BranchUpdate, BranchResponse
 from app.services.branch import (
     create_branch_item,
     delete_branch_item,
@@ -38,7 +38,7 @@ def read_branch(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=BranchResponse)
-def update_branch(item_id: str, payload: BranchCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
+def update_branch(item_id: str, payload: BranchUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = update_branch_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

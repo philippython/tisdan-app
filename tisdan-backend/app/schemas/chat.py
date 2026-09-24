@@ -16,3 +16,8 @@ class ChatResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ChatUpdate(BaseModel):
+    doctor_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None

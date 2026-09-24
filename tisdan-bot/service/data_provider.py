@@ -1,426 +1,278 @@
+"""All data the bot needs from the Tisdan backend.
+
+When API_BASE is set the backend is the only source of truth: if a call
+fails we return nothing and the conversation says the service is
+temporarily unavailable. The built-in demo data is used only when API_BASE
+is not configured at all (local demos without a backend).
+"""
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+import logging
 import os
-from dotenv import load_dotenv
+
 import httpx
+from dotenv import load_dotenv
 
 # Load .env file if present so API_BASE can be set for local development
 load_dotenv()
 
+logger = logging.getLogger("tisdan.bot.data")
 
-# Base URL for the backend API. If unset, data_provider keeps using in-memory fallbacks.
-API_BASE = os.environ.get("API_BASE")
-if API_BASE:
-    print(f"data_provider: using API_BASE={API_BASE}")
+API_BASE = (os.environ.get("API_BASE") or "").rstrip("/")
+BOT_API_KEY = os.environ.get("BOT_API_KEY", "")
+DEMO_MODE = not API_BASE
+
+if DEMO_MODE:
+    logger.warning("API_BASE not set: the bot is running on built-in DEMO data")
 else:
-    print("data_provider: API_BASE not set, using local fallbacks")
+    logger.info("data_provider: using API_BASE=%s", API_BASE)
+
+DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+# Used when a branch has no schedule configured in the portal yet.
+DEFAULT_SCHEDULE = [
+    {"day": d, "opening_time": "07:00", "closing_time": "19:00"} for d in DAY_ORDER[:6]
+] + [{"day": "Sunday", "opening_time": "08:00", "closing_time": "14:00"}]
 
 
-async def _get_client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=5.0)
+def normalize_phone_number(number: Optional[str]) -> Optional[str]:
+    if not number:
+        return None
+    s = number.strip()
+    if s.startswith("whatsapp:"):
+        s = s[len("whatsapp:") :]
+    s = s.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    if s.startswith("0") and len(s) >= 10:
+        s = "+234" + s[1:]
+    elif s.startswith("234") and not s.startswith("+234"):
+        s = "+" + s
+    elif not s.startswith("+"):
+        s = "+" + s
+    return s
+
+
+def format_price(price: Any) -> str:
+    try:
+        return f"₦{float(price):,.0f}"
+    except (TypeError, ValueError):
+        return str(price) if price else "Contact us for price"
+
+
+def _client() -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        base_url=API_BASE,
+        timeout=10.0,
+        headers={"X-Bot-Key": BOT_API_KEY},
+    )
+
+
+async def _get(path: str, **params) -> Optional[Any]:
+    try:
+        async with _client() as c:
+            r = await c.get(path, params=params or None)
+        if r.status_code == 200:
+            return r.json()
+        if r.status_code != 404:
+            logger.warning("GET %s failed: HTTP %s - %s", path, r.status_code, r.text[:300])
+    except Exception as exc:
+        logger.warning("GET %s failed: %s", path, exc)
+    return None
+
+
+async def _post(path: str, payload: Dict[str, Any]) -> Optional[Any]:
+    try:
+        async with _client() as c:
+            r = await c.post(path, json=payload)
+        if r.status_code in (200, 201):
+            return r.json()
+        logger.warning("POST %s failed: HTTP %s - %s", path, r.status_code, r.text[:300])
+    except Exception as exc:
+        logger.warning("POST %s failed: %s", path, exc)
+    return None
+
+
+# ── Catalogue ────────────────────────────────────────────────────────────
+DEMO_BRANCHES = [
+    {"id": "1", "name": "Ilesa HQ", "address": "Ilesa, Osun", "branch_code": "ILE"},
+    {"id": "2", "name": "Ore Branch", "address": "Ore, Ondo", "branch_code": "ORE"},
+    {"id": "3", "name": "Ibadan Branch", "address": "Ibadan, Oyo", "branch_code": "IBA"},
+]
+
+DEMO_TESTS = [
+    {"id": "1", "name": "Malaria Parasite (MP)", "price": 1500, "branch_id": None},
+    {"id": "2", "name": "Full Blood Count (FBC)", "price": 4500, "branch_id": None},
+    {"id": "3", "name": "Malaria + FBC (combo)", "price": 5000, "branch_id": None},
+    {"id": "4", "name": "Pregnancy Test", "price": 2000, "branch_id": None},
+    {"id": "5", "name": "Urinalysis", "price": 3000, "branch_id": None},
+    {"id": "6", "name": "Typhoid (Widal)", "price": 1500, "branch_id": None},
+]
 
 
 async def fetch_branches() -> List[Dict[str, Any]]:
-    """Fetch branches from API /branches/ or return fallback data.
-
-    Returns a list of dicts containing at least `id` and `name`.
-    """
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/branches/")
-                r.raise_for_status()
-                data = r.json()
-                if isinstance(data, list):
-                    print(data)
-                    return data
-        except Exception:
-            pass
-
-    # Fallback static data
-    return [
-        {"id": "1", "name": "Ilesa HQ", "hours": "Mon–Sat 7am–7pm, Sun 8am–2pm", "phone": "+2347033444515", "address": "Ilesa, Osun"},
-        {"id": "2", "name": "Ore Branch", "hours": "Mon–Sat 7am–7pm", "phone": "+2347033444515", "address": "Ore, Ondo"},
-        {"id": "3", "name": "Ibadan Branch", "hours": "Mon–Sat 7am–7pm", "phone": "+2347033444515", "address": "Ibadan, Oyo"},
-    ]
+    """Branches as a list of dicts with id, name, address, branch_code."""
+    if DEMO_MODE:
+        return DEMO_BRANCHES
+    data = await _get("/branches/")
+    return data if isinstance(data, list) else []
 
 
 async def fetch_branch_schedule(branch_id: str) -> List[Dict[str, Any]]:
-    """Fetch schedule for a specific branch (opening/closing times by day).
-    
-    Returns list of schedule dicts with: day, opening_time, closing_time
-    """
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/branch-schedules/")
-                if r.status_code == 200:
-                    schedules = r.json()
-                    # Filter by branch_id
-                    branch_schedules = [s for s in schedules if str(s.get("branch_id")) == str(branch_id)]
-                    if branch_schedules:
-                        return branch_schedules
-        except Exception as e:
-            print(f"Error fetching branch schedule: {e}")
-    
-    # Fallback: simple schedule
-    return [
-        {"day": "Monday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Tuesday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Wednesday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Thursday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Friday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Saturday", "opening_time": "07:00", "closing_time": "19:00"},
-        {"day": "Sunday", "opening_time": "08:00", "closing_time": "14:00"},
-    ]
+    """Opening days for a branch, Monday first, with Title-case day names."""
+    schedules: List[Dict[str, Any]] = []
+    if not DEMO_MODE:
+        data = await _get("/branch-schedules/")
+        if isinstance(data, list):
+            schedules = [
+                dict(s, day=str(s.get("day", "")).strip().title())
+                for s in data
+                if str(s.get("branch_id")) == str(branch_id)
+            ]
+    if not schedules:
+        return DEFAULT_SCHEDULE
+    rank = {d: i for i, d in enumerate(DAY_ORDER)}
+    return sorted(schedules, key=lambda s: rank.get(s["day"], 99))
 
 
 async def fetch_test_catalog() -> List[Dict[str, Any]]:
-    """Fetch tests from API /tests/ or return fallback list."""
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/tests/")
-                r.raise_for_status()
-                data = r.json()
-                if isinstance(data, list):
-                    return data
-        except Exception:
-            pass
-
-    return [
-        {"id": "1", "name": "Malaria Parasite (MP)", "price": "₦1,500"},
-        {"id": "2", "name": "Full Blood Count (FBC)", "price": "₦4,500"},
-        {"id": "3", "name": "Malaria + FBC (combo)", "price": "₦5,000"},
-        {"id": "4", "name": "Pregnancy Test", "price": "₦2,000"},
-        {"id": "5", "name": "Urinalysis", "price": "₦3,000"},
-        {"id": "6", "name": "Typhoid (Widal)", "price": "₦1,500"},
-        {"id": "7", "name": "HIV Test", "price": "₦2,000"},
-        {"id": "8", "name": "Abdominal Scan", "price": "₦5,000"},
-    ]
+    if DEMO_MODE:
+        return DEMO_TESTS
+    data = await _get("/tests/")
+    return data if isinstance(data, list) else []
 
 
-async def fetch_customers() -> List[Dict[str, Any]]:
-    """Fetch customers from API /customers/ or return empty list.
-
-    Customers are people who book tests. Returns list of customer dicts.
-    """
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/customers/")
-                r.raise_for_status()
-                data = r.json()
-                if isinstance(data, list):
-                    return data
-        except Exception:
-            pass
-
-    return []
+async def fetch_tests_for_branch(branch_id: Optional[str]) -> List[Dict[str, Any]]:
+    """Tests offered at a branch: branch-specific ones plus all-branch ones."""
+    tests = await fetch_test_catalog()
+    return [t for t in tests if not t.get("branch_id") or str(t.get("branch_id")) == str(branch_id)]
 
 
 async def fetch_price_list() -> List[Dict[str, Any]]:
-    """Return tests grouped as a single category if API doesn't provide price sections."""
     tests = await fetch_test_catalog()
-    items = []
-    for t in tests:
-        items.append({"name": t.get("name", "Unknown"), "price": t.get("price", "Contact for price")})
-    return [{"category": "All Tests", "items": items}]
-
-
-# Results fallback store (kept for quick demo / offline use)
-RESULTS_DB: Dict[str, Dict[str, str]] = {
-    "TSC-20260414-0047": {
-        "name": "Blessing Oladele",
-        "test": "Malaria Parasite (MP)",
-        "date": "14 April 2026",
-        "branch": "Ilesa HQ",
-        "result": "✅ Negative for Malaria Parasite",
-    }
-}
-
-PHONE_INDEX: Dict[str, str] = {
-    "+2347033444515": "TSC-20260414-0047",
-}
-
-
-async def fetch_result_by_reference(reference: str) -> Optional[Dict[str, Any]]:
-    """Try API /results/{reference} then fall back to local DB.
-
-    Attempts to enrich result using related endpoints when available.
-    """
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/results/{reference}")
-                if r.status_code == 200:
-                    data = r.json()
-                    # map API fields to internal display shape where possible
-                    mapped = {
-                        "reference": reference,
-                        "result_text": data.get("result_text") or data.get("result") or "",
-                        "status": data.get("status"),
-                        "uploaded_at": data.get("uploaded_at"),
-                    }
-                    # try to resolve booking/test/branch names if booking_id present
-                    booking_id = data.get("booking_id")
-                    if booking_id:
-                        try:
-                            b = await c.get(f"{API_BASE.rstrip('/')}/bookings/{booking_id}")
-                            if b.status_code == 200:
-                                booking = b.json()
-                                mapped.update({
-                                    "date": booking.get("booking_date"),
-                                    "branch": booking.get("branch_id"),
-                                    "test": booking.get("test_id"),
-                                })
-                                # fetch test name
-                                test_id = booking.get("test_id")
-                                if test_id:
-                                    t = await c.get(f"{API_BASE.rstrip('/')}/tests/{test_id}")
-                                    if t.status_code == 200:
-                                        mapped["test"] = t.json().get("name")
-                                # fetch branch name
-                                branch_id = booking.get("branch_id")
-                                if branch_id:
-                                    br = await c.get(f"{API_BASE.rstrip('/')}/branches/{branch_id}")
-                                    if br.status_code == 200:
-                                        mapped["branch"] = br.json().get("name")
-                        except Exception:
-                            pass
-                    return mapped
-        except Exception:
-            pass
-
-    # local fallback
-    return RESULTS_DB.get(reference)
-
-
-async def fetch_result_by_phone(phone: str) -> Optional[Dict[str, Any]]:
-    """Resolve results by phone number by searching users -> bookings -> results when API present.
-
-    Falls back to local index if API not available.
-    """
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                # Prefer customers (people who book tests) when resolving by phone
-                cust_resp = await c.get(f"{API_BASE.rstrip('/')}/customers/")
-                if cust_resp.status_code == 200:
-                    customers = cust_resp.json()
-                    customer = next((x for x in customers if x.get("phone_number") == phone or x.get("phone_number") == phone.lstrip("+")), None)
-                    if customer:
-                        customer_id = customer.get("id")
-                        # fetch bookings and find customer's booking ids
-                        b = await c.get(f"{API_BASE.rstrip('/')}/bookings/")
-                        if b.status_code == 200:
-                            bookings = b.json()
-                            customer_bookings = [bk for bk in bookings if bk.get("user_id") == customer_id]
-                            # for each booking try to find result
-                            r = await c.get(f"{API_BASE.rstrip('/')}/results/")
-                            if r.status_code == 200:
-                                results = r.json()
-                                for bk in customer_bookings:
-                                    match = next((res for res in results if res.get("booking_id") == bk.get("id")), None)
-                                    if match:
-                                        return await fetch_result_by_reference(match.get("id"))
-
-                # Fallback to users endpoint if customers didn't match or aren't present
-                u = await c.get(f"{API_BASE.rstrip('/')}/users/")
-                if u.status_code == 200:
-                    users = u.json()
-                    user = next((x for x in users if x.get("phone_number") == phone or x.get("phone_number") == phone.lstrip("+")), None)
-                    if user:
-                        user_id = user.get("id")
-                        # fetch bookings and find user's booking ids
-                        b = await c.get(f"{API_BASE.rstrip('/')}/bookings/")
-                        if b.status_code == 200:
-                            bookings = b.json()
-                            user_bookings = [bk for bk in bookings if bk.get("user_id") == user_id]
-                            # for each booking try to find result
-                            r = await c.get(f"{API_BASE.rstrip('/')}/results/")
-                            if r.status_code == 200:
-                                results = r.json()
-                                for bk in user_bookings:
-                                    match = next((res for res in results if res.get("booking_id") == bk.get("id")), None)
-                                    if match:
-                                        return await fetch_result_by_reference(match.get("id"))
-        except Exception:
-            pass
-
-    # fallback
-    reference = PHONE_INDEX.get(phone)
-    if reference:
-        return RESULTS_DB.get(reference)
-    return None
-
-
-# Booking Management
-async def find_or_create_customer(phone: str, name: str) -> Optional[Dict[str, Any]]:
-    """Find customer by phone or create new customer."""
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                # Try to find existing customer
-                r = await c.get(f"{API_BASE.rstrip('/')}/customers/")
-                if r.status_code == 200:
-                    customers = r.json()
-                    existing = next(
-                        (cust for cust in customers if cust.get("phone_number") == phone),
-                        None
-                    )
-                    if existing:
-                        return existing
-                    
-                    # Create new customer
-                    customer_data = {
-                        "full_name": name,
-                        "phone_number": phone,
-                        "address": "Booked via WhatsApp",
-                    }
-                    create_resp = await c.post(
-                        f"{API_BASE.rstrip('/')}/customers/",
-                        json=customer_data
-                    )
-                    if create_resp.status_code == 201:
-                        return create_resp.json()
-        except Exception as e:
-            print(f"Error managing customer: {e}")
-    return None
+    items = [{"name": t.get("name", "Unknown"), "price": format_price(t.get("price"))} for t in tests]
+    return [{"category": "All Tests", "items": items}] if items else []
 
 
 async def find_test_by_name(test_name: str) -> Optional[Dict[str, Any]]:
-    """Find test by name (case-insensitive partial match)."""
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/tests/")
-                if r.status_code == 200:
-                    tests = r.json()
-                    # Try exact match first, then partial
-                    for test in tests:
-                        if test.get("name", "").lower() == test_name.lower():
-                            return test
-                    # Partial match
-                    for test in tests:
-                        if test_name.lower() in test.get("name", "").lower():
-                            return test
-        except Exception as e:
-            print(f"Error finding test: {e}")
+    """Find a test by name (case-insensitive; exact match first, then partial)."""
+    wanted = test_name.strip().lower()
+    if not wanted:
+        return None
+    tests = await fetch_test_catalog()
+    for test in tests:
+        if test.get("name", "").lower() == wanted:
+            return test
+    for test in tests:
+        name = test.get("name", "").lower()
+        if wanted in name or name in wanted:
+            return test
     return None
+
+
+# ── Results ──────────────────────────────────────────────────────────────
+DEMO_RESULTS = {
+    "results": [
+        {
+            "reference": "DEMO-0001",
+            "patient_name": "Demo Patient",
+            "test_name": "Malaria Parasite (MP)",
+            "branch_name": "Ilesa HQ",
+            "date": "14 April 2026",
+            "result_text": "Negative for Malaria Parasite",
+        }
+    ],
+    "pending": 0,
+}
+
+
+async def fetch_results(phone: Optional[str] = None, reference: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Released results for a phone number or booking reference.
+
+    Returns {"results": [...], "pending": n}, or None if the backend could
+    not be reached.
+    """
+    if DEMO_MODE:
+        return DEMO_RESULTS
+    params = {"phone": normalize_phone_number(phone)} if phone else {"reference": reference}
+    return await _get("/bot/results", **params)
+
+
+# ── Bookings ─────────────────────────────────────────────────────────────
+async def find_or_create_customer(phone: str, name: str, address: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    payload = {"full_name": name, "phone_number": normalize_phone_number(phone)}
+    if address:
+        payload["address"] = address
+    return await _post("/bot/customers/", payload)
+
+
+def next_date_for_day(day_name: str, opening_time: str = "07:00") -> Optional[datetime]:
+    """The next occurrence (after today) of `day_name`, at the opening time."""
+    day = day_name.strip().title()
+    if day not in DAY_ORDER:
+        return None
+    today = datetime.now()
+    days_ahead = DAY_ORDER.index(day) - today.weekday()
+    if days_ahead <= 0:
+        days_ahead += 7
+    try:
+        hour, minute = (int(x) for x in opening_time.split(":")[:2])
+    except ValueError:
+        hour, minute = 7, 0
+    return (today + timedelta(days=days_ahead)).replace(hour=hour, minute=minute, second=0, microsecond=0)
 
 
 async def create_booking(
     phone: str,
     name: str,
     branch_id: str,
+    test_id: Optional[str],
     test_name: str,
     appointment_day: str,
-    appointment_hours: str = None,
+    opening_time: str = "07:00",
+    address: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Create a booking via the API.
-    
-    Args:
-        phone: Customer phone number
-        name: Customer name
-        branch_id: Branch UUID
-        test_name: Test name
-        appointment_day: Day of week (e.g. "Monday", "Tuesday", etc)
-        appointment_hours: Hours range (e.g. "07:00 – 19:00") - optional
-    """
-    if not API_BASE:
-        print("API_BASE not set, cannot create booking")
-        return None
-    
-    try:
-        async with await _get_client() as c:
-            # Find or create customer
-            customer = await find_or_create_customer(phone, name)
-            if not customer:
-                print(f"Failed to find or create customer for {phone}")
-                return None
-            
-            # Find test
-            test = await find_test_by_name(test_name)
-            if not test:
-                print(f"Test '{test_name}' not found")
-                return None
-            
-            # Convert day name to next occurrence datetime
-            from datetime import datetime, timedelta
-            
-            days_map = {
-                "Monday": 0,
-                "Tuesday": 1,
-                "Wednesday": 2,
-                "Thursday": 3,
-                "Friday": 4,
-                "Saturday": 5,
-                "Sunday": 6,
-            }
-            
-            target_day_num = days_map.get(appointment_day)
-            if target_day_num is None:
-                print(f"Invalid day: {appointment_day}")
-                return None
-            
-            # Find next occurrence of this day
-            today = datetime.now()
-            current_day_num = today.weekday()
-            days_ahead = target_day_num - current_day_num
-            if days_ahead <= 0:  # Target day already happened this week
-                days_ahead += 7
-            
-            booking_date = today + timedelta(days=days_ahead)
-            booking_date = booking_date.replace(hour=7, minute=0, second=0, microsecond=0)  # Default to 7am
-            
-            # Create booking for a customer
-            booking_data = {
-                "customer_id": customer["id"],
-                "test_id": test["id"],
-                "branch_id": branch_id,
-                "booking_date": booking_date.isoformat(),
-            }
-            
-            resp = await c.post(
-                f"{API_BASE.rstrip('/')}/bookings/",
-                json=booking_data
-            )
-            
-            if resp.status_code in (200, 201):
-                return resp.json()
-            else:
-                print(f"Booking creation failed: {resp.status_code} - {resp.text}")
-                return None
-    except Exception as e:
-        print(f"Error creating booking: {e}")
+    """Create a booking for the WhatsApp user. Returns the booking or None."""
+    if DEMO_MODE:
+        logger.warning("DEMO mode: booking not saved")
+        return {"id": "DEMO-BOOKING"}
+
+    booking_date = next_date_for_day(appointment_day, opening_time)
+    if booking_date is None:
+        logger.warning("Invalid appointment day: %s", appointment_day)
         return None
 
+    if not test_id:
+        test = await find_test_by_name(test_name)
+        if not test:
+            logger.warning("Test '%s' not found", test_name)
+            return None
+        test_id = test["id"]
 
-# Coordinator & Referral Management (local fallback)
-COORDINATORS: Dict[str, Dict[str, str]] = {
-    "PHARM-ILE-007": {"name": "Ilesa Pharmacy", "commission": "₦300", "type": "pharmacy"},
-    "CHEW-ORE-001": {"name": "Ore Community Health Worker", "commission": "₦300", "type": "chew"},
-    "CHURCH-IBA-002": {"name": "Ibadan Church", "commission": "₦200", "type": "church"},
+    customer = await find_or_create_customer(phone, name, address=address)
+    if not customer:
+        return None
+
+    return await _post(
+        "/bookings/",
+        {
+            "customer_id": customer["id"],
+            "test_id": test_id,
+            "branch_id": branch_id,
+            "booking_date": booking_date.isoformat(),
+        },
+    )
+
+
+# ── Coordinators & referrals ─────────────────────────────────────────────
+DEMO_COORDINATORS = {
+    "PHARM-ILE-007": {"referral_code": "PHARM-ILE-007", "user_full_name": "Ilesa Pharmacy"},
 }
-
-REFERRALS: Dict[str, Dict[str, str]] = {}
-REFERRAL_COUNTER: int = 0
 
 
 async def validate_coordinator(code: str) -> Optional[Dict[str, Any]]:
-    """Validate coordinator code; prefer API `/coordinators/` when available."""
-    if API_BASE:
-        try:
-            async with await _get_client() as c:
-                r = await c.get(f"{API_BASE.rstrip('/')}/coordinators/")
-                r.raise_for_status()
-                for coord in r.json():
-                    if coord.get("referral_code") == code:
-                        return coord
-        except Exception:
-            pass
-
-    return COORDINATORS.get(code)
+    code = code.strip().upper()
+    if DEMO_MODE:
+        return DEMO_COORDINATORS.get(code)
+    return await _get(f"/bot/coordinators/{code}")
 
 
 async def register_referral(
@@ -429,29 +281,16 @@ async def register_referral(
     patient_phone: str,
     test_name: str,
     branch_name: str,
-) -> Dict[str, Any]:
-    """Register a referral locally. If you have a referrals endpoint, this can be updated to POST there."""
-    global REFERRAL_COUNTER
-    REFERRAL_COUNTER += 1
-
-    referral_id = f"REF-20260414-{REFERRAL_COUNTER:04d}"
-    coordinator = COORDINATORS.get(coordinator_code, {"name": coordinator_code, "commission": "₦0"})
-
-    referral_data = {
-        "id": referral_id,
+) -> Optional[Dict[str, Any]]:
+    """Save a referral in the backend so it shows in the admin portal.
+    Returns the saved referral, or None if it could not be saved."""
+    payload = {
         "coordinator_code": coordinator_code,
-        "coordinator_name": coordinator.get("name"),
         "patient_name": patient_name,
-        "patient_phone": patient_phone,
+        "patient_phone": normalize_phone_number(patient_phone) or patient_phone,
         "test_name": test_name,
         "branch_name": branch_name,
-        "commission": coordinator.get("commission"),
-        "status": "registered",
     }
-
-    REFERRALS[referral_id] = referral_data
-    return referral_data
-
-
-async def fetch_referral_by_id(referral_id: str) -> Optional[Dict[str, Any]]:
-    return REFERRALS.get(referral_id)
+    if DEMO_MODE:
+        return dict(payload, id="DEMO-REFERRAL", status="registered")
+    return await _post("/referrals/", payload)

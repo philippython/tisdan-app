@@ -30,8 +30,8 @@ export default function Broadcast() {
         request("GET", "/broadcasts/general/"),
         request("GET", "/broadcasts/personal/"),
       ]);
-      setGenList([...g].reverse());
-      setPerList([...p].reverse());
+      setGenList(g); // newest first from the API
+      setPerList(p);
     } catch (e) {
       show(e.message, "error");
     }
@@ -82,9 +82,9 @@ export default function Broadcast() {
 
   const perColumns = [
     {
-      key: "user_id",
-      label: "User ID",
-      render: (v) => <code style={{ fontSize: 11 }}>{v?.slice(0, 8)}…</code>,
+      key: "user_full_name",
+      label: "Recipient",
+      render: (v, row) => v || <code style={{ fontSize: 11 }}>{row.user_id?.slice(0, 8)}…</code>,
     },
     {
       key: "message",
@@ -168,8 +168,7 @@ export default function Broadcast() {
               Send to a Specific Customer
             </h3>
             <p style={{ fontSize: 13, color: "#64748b", marginBottom: 18 }}>
-              Send a targeted WhatsApp message to one customer using their User
-              ID.
+              Send a targeted WhatsApp message to one registered user.
             </p>
             <form onSubmit={sendPersonal}>
               <SelectSearch

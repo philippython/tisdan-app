@@ -27,11 +27,27 @@ export async function apiFetch(method, path, body = null, token = null) {
   const res = await fetch(`${BASE_URL}${path}`, fetchOptions);
 
   if (!res.ok) {
+    // expired/invalid session: send the user back to the login page
+    if (res.status === 401 && t && !token) {
+      clearToken();
+      window.location.assign("/login");
+    }
     const err = await res.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    throw new Error(formatError(err.detail) || `HTTP ${res.status}`);
   }
   if (res.status === 204) return null;
   return res.json();
+}
+
+// FastAPI validation errors arrive as a list of {loc, msg}
+function formatError(detail) {
+  if (!Array.isArray(detail)) return detail;
+  return detail
+    .map((d) => {
+      const field = (d.loc || []).filter((p) => p !== "body").join(".");
+      return field ? `${field}: ${d.msg}` : d.msg;
+    })
+    .join("; ");
 }
 
 export async function apiLogin(email, password) {

@@ -4,6 +4,7 @@ import { useApi } from "../hooks/useApi";
 import { useAuth } from "../hooks/useAuth";
 import { Card, CardHeader, Spinner } from "../components/ui";
 import { C, shortId } from "../lib/theme";
+import Referrals from "./Referrals";
 
 function CoordinatorSelfView({ request }) {
   const [data, setData] = useState([]);
@@ -61,8 +62,11 @@ function CoordinatorSelfView({ request }) {
               {c.referral_code}
             </div>
             <div style={{ marginTop: 14, fontSize: 13, color: C.muted }}>
-              Coordinator ID:{" "}
-              <code style={{ fontSize: 11 }}>{shortId(c.id)}</code>
+              To refer a patient, send <b>REF {c.referral_code}</b> to the Tisdan
+              WhatsApp number and follow the instructions.
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, color: C.muted }}>
+              Referrals so far: <b>{c.referral_count ?? 0}</b>
             </div>
           </div>
         ))
@@ -76,7 +80,13 @@ export default function Coordinators() {
   const { user } = useAuth();
 
   if (user?.role === "COORDINATOR")
-    return <CoordinatorSelfView request={request} />;
+    return (
+      <>
+        <CoordinatorSelfView request={request} />
+        <div style={{ height: 20 }} />
+        <Referrals />
+      </>
+    );
 
   return (
     <CrudPage
@@ -115,7 +125,9 @@ export default function Coordinators() {
               <code style={{ fontSize: 11 }}>{shortId(v)}</code>
             ),
         },
+        { key: "referral_count", label: "Referrals" },
       ]}
+      searchKeys={["referral_code", "user_full_name"]}
       formFields={[
         {
           name: "user_id",

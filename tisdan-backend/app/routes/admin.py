@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.admin import AdminCreate, AdminResponse
+from app.schemas.admin import AdminCreate, AdminUpdate, AdminResponse
 from app.services.admin import (
     create_admin_item,
     delete_admin_item,
@@ -39,7 +39,7 @@ def read_admin(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=AdminResponse)
-def update_admin(item_id: str, payload: AdminCreate, session: Session = Depends(get_session)):
+def update_admin(item_id: str, payload: AdminUpdate, session: Session = Depends(get_session)):
     item = update_admin_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.staff import StaffCreate, StaffResponse
+from app.schemas.staff import StaffCreate, StaffUpdate, StaffResponse
 from app.services.staff import (
     create_staff_item,
     delete_staff_item,
@@ -30,7 +30,7 @@ def read_staffs(session: Session = Depends(get_session), current_user=Depends(re
 
 
 @router.get("/{item_id}", response_model=StaffResponse)
-def read_staff(item_id: str, session: Session = Depends(get_session)):
+def read_staff(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = get_staff(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -38,7 +38,7 @@ def read_staff(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=StaffResponse)
-def update_staff(item_id: str, payload: StaffCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def update_staff(item_id: str, payload: StaffUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_staff_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

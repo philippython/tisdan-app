@@ -26,6 +26,10 @@ export const statusColor = {
   DOCTOR: C.success,
   COORDINATOR: C.warn,
   CLIENT: C.muted,
+  // referral statuses (shown upper-cased)
+  REGISTERED: C.warn,
+  VISITED: C.accent,
+  PAID: C.success,
 }
 
 export const fmtDate = (d) => d ? new Date(d).toLocaleString() : '—'

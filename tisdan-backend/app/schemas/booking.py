@@ -10,12 +10,22 @@ class BookingCreate(BaseModel):
     customer_id: Optional[UUID] = None
     test_id: UUID
     branch_id: UUID
+    status: Optional[BookingStatus] = None
 
     @model_validator(mode="after")
     def require_user_or_customer(self):
         if not self.user_id and not self.customer_id:
             raise ValueError("Either user_id or customer_id must be provided")
         return self
+
+
+class BookingUpdate(BaseModel):
+    booking_date: Optional[datetime] = None
+    user_id: Optional[UUID] = None
+    customer_id: Optional[UUID] = None
+    test_id: Optional[UUID] = None
+    branch_id: Optional[UUID] = None
+    status: Optional[BookingStatus] = None
 
 
 class BookingResponse(BaseModel):
@@ -28,7 +38,10 @@ class BookingResponse(BaseModel):
     branch_id: UUID
     user_full_name: Optional[str] = None
     customer_full_name: Optional[str] = None
+    patient_name: Optional[str] = None
+    patient_phone: Optional[str] = None
     test_name: Optional[str] = None
+    test_price: Optional[float] = None
     branch_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

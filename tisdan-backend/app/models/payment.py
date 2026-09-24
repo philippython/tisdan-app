@@ -18,7 +18,7 @@ class Payment(SQLModel, table=True):
 
     amount: float
 
-    currency: str = Field(default="USD")
+    currency: str = Field(default="NGN")
 
     payer_id: uuid.UUID = Field(
         foreign_key="users.id"

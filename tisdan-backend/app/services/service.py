@@ -22,12 +22,12 @@ def get_resource(model: Type[ModelType], resource_id: Any, session: Session) -> 
 
 
 def create_resource(payload: Any, model: Type[ModelType], session: Session) -> ModelType:
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_item(session, model, data)
 
 
 def update_resource(payload: Any, model: Type[ModelType], resource_id: Any, session: Session) -> Optional[ModelType]:
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_item(session, model, resource_id, data)
 
 

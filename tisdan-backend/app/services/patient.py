@@ -39,13 +39,13 @@ def get_patient(session: Session, item_id: Any):
 
 
 def create_patient_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     item = create_patient(session, data)
     return _enrich_patient(session, item)
 
 
 def update_patient_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     item = update_patient(session, item_id, data)
     return _enrich_patient(session, item)
 

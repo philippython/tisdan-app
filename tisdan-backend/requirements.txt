@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlmodel
 pydantic
 pydantic-settings
@@ -10,3 +10,5 @@ bcrypt
 requests
 email-validator
 python-dotenv
+python-multipart
+httpx

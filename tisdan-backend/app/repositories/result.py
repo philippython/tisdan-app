@@ -2,8 +2,8 @@ from typing import Any, Dict
 from sqlmodel import Session
 from app.models import Result
 from app.repositories.repository import create_item, delete_item, get_all_items, get_item_by_id, update_item
-from app.models import Booking, Customer
-from sqlmodel import select
+from app.models import Booking, Customer, User
+from sqlmodel import or_, select
 
 
 def get_all_result(session: Session):
@@ -32,11 +32,13 @@ def get_results_by_customer_id(session: Session, customer_id: Any):
 
 
 def get_results_by_customer_name(session: Session, name: str):
-    # join Result -> Booking -> Customer and filter by customer full_name
+    # join Result -> Booking -> Customer/User and match either patient's name
+    pattern = f"%{name}%"
     statement = (
         select(Result)
         .join(Booking, Result.booking_id == Booking.id)
-        .join(Customer, Booking.customer_id == Customer.id)
-        .where(Customer.full_name.ilike(f"%{name}%"))
+        .outerjoin(Customer, Booking.customer_id == Customer.id)
+        .outerjoin(User, Booking.user_id == User.id)
+        .where(or_(Customer.full_name.ilike(pattern), User.full_name.ilike(pattern)))
     )
     return session.exec(statement).all()

@@ -17,3 +17,9 @@ class DoctorResponse(BaseModel):
     user_full_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class DoctorUpdate(BaseModel):
+    specialization: Optional[str] = None
+    license_number: Optional[str] = None
+    user_id: Optional[UUID] = None

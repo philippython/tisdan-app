@@ -23,3 +23,12 @@ class BranchResponse(BaseModel):
     schedule_closing_time: Optional[time] = None
 
     model_config = {"from_attributes": True}
+
+
+class BranchUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    branch_code: Optional[str] = None
+    schedule_day: Optional[str] = None
+    schedule_opening_time: Optional[time] = None
+    schedule_closing_time: Optional[time] = None

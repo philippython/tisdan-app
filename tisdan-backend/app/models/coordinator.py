@@ -1,6 +1,7 @@
 import uuid
+from typing import List
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 
 
 class Coordinator(SQLModel, table=True):
@@ -19,4 +20,8 @@ class Coordinator(SQLModel, table=True):
     user_id: uuid.UUID = Field(
         foreign_key="users.id",
         unique=True
+    )
+
+    referrals: List["Referral"] = Relationship(
+        back_populates="coordinator"
     )

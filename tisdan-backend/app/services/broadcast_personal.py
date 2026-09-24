@@ -1,3 +1,4 @@
+import traceback
 from typing import Any
 from sqlmodel import Session
 from app.repositories.broadcast_personal import (
@@ -7,60 +8,58 @@ from app.repositories.broadcast_personal import (
     get_all_broadcast_personal,
     update_broadcast_personal,
 )
-from app.utils.bot_notify import send_whatsapp_via_bot, format_phone
-from app.models import User
+from app.utils.bot_notify import queue_whatsapp
+from app.models import BroadcastPersonal, User
+from app.schemas.broadcast import BroadcastPersonalResponse
+
+
+def _enrich(session: Session, item: BroadcastPersonal):
+    if item is None:
+        return None
+    user = session.get(User, item.user_id)
+    response = BroadcastPersonalResponse.model_validate(item)
+    response.user_full_name = user.full_name if user else None
+    return response
 
 
 def list_broadcast_personal(session: Session):
-    return get_all_broadcast_personal(session)
+    items = sorted(get_all_broadcast_personal(session), key=lambda b: b.created_at, reverse=True)
+    return [_enrich(session, item) for item in items]
 
 
 def get_broadcast_personal(session: Session, item_id: Any):
-    return get_broadcast_personal_by_id(session, item_id)
+    return _enrich(session, get_broadcast_personal_by_id(session, item_id))
+
+
+def _send(session: Session, item: BroadcastPersonal, heading: str) -> None:
+    try:
+        user = session.get(User, item.user_id)
+        body = (
+            f"{heading}\n\n"
+            f"{item.message}\n\n"
+            "Reply to this WhatsApp if you need help."
+        )
+        queue_whatsapp([user.phone_number if user else None], body)
+    except Exception:
+        # Do not fail the primary operation if notifications fail,
+        # but always log so failures are visible instead of silent.
+        traceback.print_exc()
 
 
 def create_broadcast_personal_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     item = create_broadcast_personal(session, data)
-
-    try:
-        user = session.get(User, data["user_id"])
-        if user and getattr(user, "phone_number", None):
-            to = format_phone(user.phone_number)
-            body = (
-                "📩 *Personal Message from Tisdan Care*\n\n"
-                f"{data.get('message', '')}\n\n"
-                "Reply to this WhatsApp if you need help."
-            )
-            if to:
-                send_whatsapp_via_bot(to, body)
-    except Exception:
-        pass
-
-    return item
+    _send(session, item, "📩 *Personal Message from Tisdan Care*")
+    return _enrich(session, item)
 
 
 def update_broadcast_personal_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     item = update_broadcast_personal(session, item_id, data)
     if item is None:
         return None
-
-    try:
-        user = session.get(User, data.get("user_id", getattr(item, "user_id", None)))
-        if user and getattr(user, "phone_number", None):
-            to = format_phone(user.phone_number)
-            body = (
-                "🔄 *Updated Personal Message from Tisdan Care*\n\n"
-                f"{data.get('message', getattr(item, 'message', ''))}\n\n"
-                "Reply to this WhatsApp if you need help."
-            )
-            if to:
-                send_whatsapp_via_bot(to, body)
-    except Exception:
-        pass
-
-    return item
+    _send(session, item, "🔄 *Updated Personal Message from Tisdan Care*")
+    return _enrich(session, item)
 
 
 def delete_broadcast_personal_item(session: Session, item_id: Any):

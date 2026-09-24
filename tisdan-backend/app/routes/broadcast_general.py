@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.broadcast import BroadcastGeneralCreate, BroadcastGeneralResponse
+from app.schemas.broadcast import BroadcastGeneralCreate, BroadcastGeneralUpdate, BroadcastGeneralResponse
 from app.services.broadcast_general import (
     create_broadcast_general_item,
     delete_broadcast_general_item,
@@ -39,7 +39,7 @@ def read_broadcast_general(item_id: str, session: Session = Depends(get_session)
 
 
 @router.put("/{item_id}", response_model=BroadcastGeneralResponse)
-def update_broadcast_general(item_id: str, payload: BroadcastGeneralCreate, session: Session = Depends(get_session)):
+def update_broadcast_general(item_id: str, payload: BroadcastGeneralUpdate, session: Session = Depends(get_session)):
     item = update_broadcast_general_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

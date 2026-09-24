@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from app.dependencies.authentication import get_current_user
 from app.routes.dependencies import get_session
-from app.schemas.chat import ChatCreate, ChatResponse
+from app.schemas.chat import ChatCreate, ChatUpdate, ChatResponse
 from app.services.chat import (
     create_chat_item,
     delete_chat_item,
@@ -38,7 +38,7 @@ def read_chat(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=ChatResponse)
-def update_chat(item_id: str, payload: ChatCreate, session: Session = Depends(get_session)):
+def update_chat(item_id: str, payload: ChatUpdate, session: Session = Depends(get_session)):
     item = update_chat_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

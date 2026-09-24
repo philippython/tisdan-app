@@ -2,3 +2,5 @@ fastapi
 uvicorn[standard]
 twilio
 httpx
+python-dotenv
+python-multipart

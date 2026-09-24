@@ -15,3 +15,9 @@ class CustomerResponse(BaseModel):
     address: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class CustomerUpdate(BaseModel):
+    full_name: str | None = None
+    phone_number: str | None = None
+    address: str | None = None

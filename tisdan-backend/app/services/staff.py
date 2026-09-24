@@ -14,7 +14,7 @@ def _enrich_staff(session: Session, item):
     if item is None:
         return item
 
-    result = item.dict()
+    result = item.model_dump()
     if getattr(item, "user_id", None):
         user = session.get(User, item.user_id)
         if user and getattr(user, "full_name", None):
@@ -32,12 +32,12 @@ def get_staff(session: Session, item_id: Any):
 
 
 def create_staff_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_staff(session, data)
 
 
 def update_staff_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_staff(session, item_id, data)
 
 

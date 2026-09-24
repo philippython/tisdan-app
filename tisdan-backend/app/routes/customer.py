@@ -1,10 +1,10 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from app.dependencies.authentication import require_roles
+from app.dependencies.authentication import require_roles, require_roles_or_bot
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.customer import CustomerCreate, CustomerResponse
+from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse
 from app.services.customer import (
     create_customer_item,
     delete_customer_item,
@@ -20,25 +20,25 @@ router = APIRouter(
 
 
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
-def create_customer(payload: CustomerCreate, session: Session = Depends(get_session)):
+def create_customer(payload: CustomerCreate, session: Session = Depends(get_session), current_user=Depends(require_roles_or_bot(UserRole.ADMIN, UserRole.STAFF))):
     return create_customer_item(session, payload)
 
 
 @router.get("/", response_model=List[CustomerResponse])
-def read_customers(session: Session = Depends(get_session)):
+def read_customers(session: Session = Depends(get_session), current_user=Depends(require_roles_or_bot(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return list_customers(session)
 
 
 @router.get("/{item_id}", response_model=CustomerResponse)
-def read_customer(item_id: str, session: Session = Depends(get_session)):
+def read_customer(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles_or_bot(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     item = get_customer(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     return item
 
 
-@router.put("/{item_id}", response_model=CustomerResponse, dependencies=[Depends(require_roles(UserRole.ADMIN))])
-def update_customer(item_id: str, payload: CustomerCreate, session: Session = Depends(get_session)):
+@router.put("/{item_id}", response_model=CustomerResponse, dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))])
+def update_customer(item_id: str, payload: CustomerUpdate, session: Session = Depends(get_session)):
     item = update_customer_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

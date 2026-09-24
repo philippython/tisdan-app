@@ -15,3 +15,8 @@ class StaffResponse(BaseModel):
     user_full_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class StaffUpdate(BaseModel):
+    department: Optional[str] = None
+    user_id: Optional[UUID] = None

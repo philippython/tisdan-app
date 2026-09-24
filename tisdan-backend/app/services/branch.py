@@ -1,3 +1,4 @@
+import traceback
 from typing import Any
 from sqlmodel import Session, select
 from app.repositories.branch import (
@@ -11,8 +12,9 @@ from app.repositories.branch_schedule import (
     create_branch_schedule,
     update_branch_schedule,
 )
-from app.utils.bot_notify import send_whatsapp_via_bot, format_phone
-from app.models import BranchSchedule, Customer, User
+from app.utils.bot_notify import queue_whatsapp
+from app.models import BranchSchedule
+from app.services.recipients import client_phones
 
 
 def _get_branch_schedule(session: Session, branch_id: Any):
@@ -24,7 +26,7 @@ def _attach_schedule_fields(session: Session, item: Any):
     if item is None:
         return item
     # Return a plain dict combining branch fields with an attached schedule
-    result = item.dict() if hasattr(item, "dict") else dict(item.__dict__)
+    result = item.model_dump()
 
     schedule = _get_branch_schedule(session, item.id)
     if schedule:
@@ -73,7 +75,7 @@ def _ensure_schedule_for_branch(session: Session, branch_id: Any, data: dict[str
 
 
 def create_branch_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     item = create_branch(session, data)
 
     if item is not None:
@@ -85,31 +87,19 @@ def create_branch_item(session: Session, payload: Any):
         name = data.get("name", "New Branch")
         address = data.get("address", "Address available on site")
         body = f"📍 *New Branch Opened*\n\n{name}\n{address}\n\nVisit us today — Tisdan Care"
-
-        stmt = select(Customer).where(Customer.phone_number != None)
-        for cust in session.exec(stmt):
-            to = format_phone(cust.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, body)
-
-        stmt2 = select(User).where(User.role == "CLIENT")
-        for u in session.exec(stmt2):
-            to = format_phone(u.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, body)
+        queue_whatsapp(client_phones(session), body)
     except Exception:
-        pass
+        traceback.print_exc()
 
-    return item
+    return _attach_schedule_fields(session, item)
 
 
 def update_branch_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     item = update_branch(session, item_id, data)
     if item is not None:
         _ensure_schedule_for_branch(session, item.id, data)
-        _attach_schedule_fields(session, item)
-    return item
+    return _attach_schedule_fields(session, item)
 
 
 def delete_branch_item(session: Session, item_id: Any):

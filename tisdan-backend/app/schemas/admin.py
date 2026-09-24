@@ -11,3 +11,7 @@ class AdminResponse(BaseModel):
     user_id: UUID
 
     model_config = {"from_attributes": True}
+
+
+class AdminUpdate(BaseModel):
+    user_id: UUID | None = None

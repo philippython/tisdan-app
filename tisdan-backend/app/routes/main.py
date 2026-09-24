@@ -18,8 +18,11 @@ from .auth import router as auth_router
 from .payment import router as payment_router
 
 from .patient import router as patient_router
+from .referral import router as referral_router
+from .bot import router as bot_router
 router = APIRouter()
 
+router.include_router(bot_router)
 router.include_router(admin_router)
 router.include_router(booking_router)
 router.include_router(branch_router)
@@ -34,6 +37,7 @@ router.include_router(result_router)
 router.include_router(staff_router)
 router.include_router(customer_router)
 router.include_router(patient_router)
+router.include_router(referral_router)
 router.include_router(test_router)
 router.include_router(user_router)
 router.include_router(auth_router)

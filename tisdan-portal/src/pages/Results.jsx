@@ -3,7 +3,12 @@ import CrudPage from "../components/CrudPage";
 import { useApi } from "../hooks/useApi";
 import { Badge, Card, CardHeader, Btn, Toast, Table } from "../components/ui";
 import { useToast } from "../hooks/useToast";
-import { fmtDate, shortId, truncate } from "../lib/theme";
+import { fmtDate, fmtShort, shortId, truncate } from "../lib/theme";
+
+const RESULT_STATUS = [
+  { value: "RELEASED", label: "Released — send to patient on WhatsApp now" },
+  { value: "PENDING", label: "Pending — keep internal for review" },
+];
 
 export default function Results() {
   const { request } = useApi();
@@ -31,15 +36,19 @@ export default function Results() {
   };
 
   const resultColumns = [
-    {
-      key: "id",
-      label: "ID",
-      render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-    },
+    { key: "patient_name", label: "Patient", render: (v) => v || "—" },
+    { key: "test_name", label: "Test", render: (v) => v || "—" },
     {
       key: "booking_id",
       label: "Booking",
-      render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+      render: (v, row) => (
+        <span title={v}>
+          <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+          {row.booking_date && (
+            <span style={{ fontSize: 11, color: "#64748b" }}> · {fmtShort(row.booking_date)}</span>
+          )}
+        </span>
+      ),
     },
     { key: "status", label: "Status", render: (v) => <Badge status={v} /> },
     { key: "uploaded_at", label: "Uploaded", render: (v) => fmtDate(v) },
@@ -105,6 +114,7 @@ export default function Results() {
         endpoint="/results/"
         request={request}
         columns={resultColumns}
+        searchKeys={["patient_name", "test_name", "status", "booking_id"]}
         formFields={[
           {
             name: "booking_id",
@@ -113,7 +123,9 @@ export default function Results() {
             type: "select-search",
             endpoint: "/bookings/",
             labelKey: (item) =>
-              `Booking ${shortId(item.id)} — ${item.status} — ${item.booking_date ? new Date(item.booking_date).toLocaleDateString() : ""}`,
+              `${item.patient_name || "Unknown patient"} — ${item.test_name || "test"} — ${
+                item.booking_date ? new Date(item.booking_date).toLocaleDateString() : ""
+              } (${shortId(item.id)})`,
           },
           {
             name: "result_text",
@@ -122,8 +134,14 @@ export default function Results() {
             rows: 5,
             placeholder: "Enter the diagnostic result…",
           },
+          {
+            name: "status",
+            label: "Status",
+            required: true,
+            options: RESULT_STATUS,
+          },
         ]}
-        defaultForm={{ booking_id: "", result_text: "" }}
+        defaultForm={{ booking_id: "", result_text: "", status: "RELEASED" }}
       />
     </>
   );

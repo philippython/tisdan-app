@@ -20,3 +20,8 @@ class MessageResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class MessageUpdate(BaseModel):
+    content: str | None = None
+    is_read: bool | None = None

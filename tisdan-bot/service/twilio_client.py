@@ -1,8 +1,11 @@
+import logging
 import os
 from typing import Optional
 
 from twilio.base.exceptions import TwilioRestException
 from twilio.rest import Client
+
+logger = logging.getLogger("tisdan.bot.twilio")
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
@@ -15,6 +18,9 @@ if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
 
 def send_whatsapp_message(to: str, body: str) -> bool:
     if client is None:
+        logger.warning("WhatsApp send skipped: TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN not set")
+        return False
+    if not to:
         return False
 
     normalized_to = to.strip()
@@ -28,5 +34,6 @@ def send_whatsapp_message(to: str, body: str) -> bool:
     try:
         client.messages.create(body=body, from_=TWILIO_WHATSAPP_FROM, to=whatsapp_to)
         return True
-    except TwilioRestException:
+    except TwilioRestException as exc:
+        logger.warning("WhatsApp send to %s failed: %s", whatsapp_to, exc)
         return False

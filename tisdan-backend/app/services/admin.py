@@ -18,12 +18,12 @@ def get_admin(session: Session, item_id: Any):
 
 
 def create_admin_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_admin(session, data)
 
 
 def update_admin_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_admin(session, item_id, data)
 
 

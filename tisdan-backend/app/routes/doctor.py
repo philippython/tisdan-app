@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.doctor import DoctorCreate, DoctorResponse
+from app.schemas.doctor import DoctorCreate, DoctorUpdate, DoctorResponse
 from app.services.doctor import (
     create_doctor_item,
     delete_doctor_item,
@@ -25,12 +25,12 @@ def create_doctor(payload: DoctorCreate, session: Session = Depends(get_session)
 
 
 @router.get("/", response_model=List[DoctorResponse])
-def read_doctors(session: Session = Depends(get_session)):
+def read_doctors(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return list_doctor(session)
 
 
 @router.get("/{item_id}", response_model=DoctorResponse)
-def read_doctor(item_id: str, session: Session = Depends(get_session)):
+def read_doctor(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     item = get_doctor(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -38,7 +38,7 @@ def read_doctor(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=DoctorResponse)
-def update_doctor(item_id: str, payload: DoctorCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def update_doctor(item_id: str, payload: DoctorUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_doctor_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

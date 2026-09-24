@@ -1,44 +1,55 @@
+import { useEffect, useState } from "react";
 import CrudPage from "../components/CrudPage";
 import { useApi } from "../hooks/useApi";
+import { useAuth } from "../hooks/useAuth";
 import { Badge } from "../components/ui";
 import { shortId, fmtShort } from "../lib/theme";
 
-const DAYS = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-];
+// id -> name map for showing related records (e.g. branch names) in tables
+function useNames(request, endpoint, labelKey = "name") {
+  const [names, setNames] = useState({});
+  useEffect(() => {
+    request("GET", endpoint)
+      .then((data) =>
+        setNames(Object.fromEntries((data || []).map((d) => [d.id, d[labelKey]]))),
+      )
+      .catch(() => {});
+  }, [request, endpoint, labelKey]);
+  return names;
+}
+
+const idColumn = {
+  key: "id",
+  label: "ID",
+  render: (v) => (
+    <code style={{ fontSize: 11 }} title={v}>
+      {shortId(v)}
+    </code>
+  ),
+};
+
+const userColumn = {
+  key: "user_id",
+  label: "User",
+  render: (v, row) =>
+    row.user_full_name ? row.user_full_name : <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
+};
 
 // ── Staff ────────────────────────────────────
 export function Staff() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   return (
     <CrudPage
       title="Staff"
       endpoint="/staff/"
       request={request}
-      columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
-        { key: "department", label: "Department" },
-        {
-          key: "user_id",
-          label: "User",
-          render: (v, row) =>
-            row.user_full_name ? (
-              row.user_full_name
-            ) : (
-              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
-            ),
-        },
-      ]}
+      canCreate={isAdmin}
+      canEdit={isAdmin}
+      canDelete={isAdmin}
+      searchKeys={["user_full_name", "department"]}
+      columns={[idColumn, userColumn, { key: "department", label: "Department" }]}
       formFields={[
         {
           name: "user_id",
@@ -63,29 +74,22 @@ export function Staff() {
 // ── Patients ─────────────────────────────────
 export function Patients() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const canManage = user?.role === "ADMIN" || user?.role === "STAFF";
   return (
     <CrudPage
       title="Patients"
       endpoint="/patients/"
       request={request}
+      canCreate={canManage}
+      canEdit={canManage}
+      canDelete={canManage}
+      searchKeys={["user_full_name", "gender"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
+        idColumn,
+        userColumn,
         { key: "gender", label: "Gender" },
         { key: "age", label: "Age" },
-        {
-          key: "user_id",
-          label: "User",
-          render: (v, row) =>
-            row.user_full_name ? (
-              row.user_full_name
-            ) : (
-              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
-            ),
-        },
       ]}
       formFields={[
         {
@@ -94,8 +98,7 @@ export function Patients() {
           required: true,
           type: "select-search",
           endpoint: "/users/",
-          labelKey: (item) =>
-            `${item.full_name} (${item.phone_number || item.email})`,
+          labelKey: (item) => `${item.full_name} (${item.phone_number || item.email})`,
         },
         {
           name: "gender",
@@ -113,34 +116,35 @@ export function Patients() {
 // ── Customers ────────────────────────────────
 export function Customers() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const canManage = user?.role === "ADMIN" || user?.role === "STAFF";
   return (
     <CrudPage
       title="Customers"
       endpoint="/customers/"
       request={request}
-      canEdit={true}
-      canDelete={true}
+      canCreate={canManage}
+      canEdit={canManage}
+      canDelete={user?.role === "ADMIN"}
+      searchKeys={["full_name", "phone_number", "address"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
+        idColumn,
         { key: "full_name", label: "Full Name" },
-        { key: "phone_number", label: "Phone" },
-        { key: "address", label: "Address" },
+        { key: "phone_number", label: "Phone", render: (v) => v || "—" },
+        { key: "address", label: "Address", render: (v) => v || "—" },
       ]}
       formFields={[
         { name: "full_name", label: "Full Name", required: true },
         {
           name: "phone_number",
-          label: "Phone Number",
+          label: "WhatsApp Number",
           required: true,
           placeholder: "e.g. 08012345678",
         },
         {
           name: "address",
           label: "Address",
+          nullable: true,
           placeholder: "e.g. 5 Broad Street, Lagos",
         },
       ]}
@@ -152,22 +156,24 @@ export function Customers() {
 // ── Tests ─────────────────────────────────────
 export function Tests() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const branches = useNames(request, "/branches/");
+  const isAdmin = user?.role === "ADMIN";
   return (
     <CrudPage
       title="Diagnostic Tests"
       endpoint="/tests/"
       request={request}
+      canCreate={isAdmin}
+      canEdit={isAdmin || user?.role === "STAFF"}
+      canDelete={isAdmin}
+      searchKeys={["name", "description"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
         { key: "name", label: "Name" },
         {
           key: "description",
           label: "Description",
-          render: (v) => v?.slice(0, 60) + (v?.length > 60 ? "…" : ""),
+          render: (v) => (v ? v.slice(0, 60) + (v.length > 60 ? "…" : "") : "—"),
         },
         {
           key: "price",
@@ -179,7 +185,7 @@ export function Tests() {
           label: "Branch",
           render: (v) =>
             v ? (
-              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+              branches[v] || <code style={{ fontSize: 11 }}>{shortId(v)}</code>
             ) : (
               <span style={{ color: "#94a3b8" }}>All branches</span>
             ),
@@ -207,25 +213,24 @@ export function Tests() {
 // ── Branches ──────────────────────────────────
 export function Branches() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const canManage = user?.role === "ADMIN" || user?.role === "STAFF";
   return (
     <CrudPage
       title="Branches"
       endpoint="/branches/"
       request={request}
+      canCreate={canManage}
+      canEdit={canManage}
+      canDelete={canManage}
+      searchKeys={["name", "branch_code", "address"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
         { key: "name", label: "Branch Name" },
         {
           key: "branch_code",
           label: "Code",
           render: (v) => (
-            <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
-              {v}
-            </span>
+            <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{v}</span>
           ),
         },
         { key: "address", label: "Address" },
@@ -239,36 +244,11 @@ export function Branches() {
           placeholder: "e.g. LG-01",
         },
         { name: "address", label: "Address", required: true },
-        {
-          name: "schedule_day",
-          label: "Schedule Day",
-          type: "select",
-          options: DAYS,
-          nullable: true,
-          nullLabel: "— No schedule —",
-        },
-        {
-          name: "schedule_opening_time",
-          label: "Opening Time",
-          type: "time",
-          nullable: true,
-          placeholder: "HH:MM",
-        },
-        {
-          name: "schedule_closing_time",
-          label: "Closing Time",
-          type: "time",
-          nullable: true,
-          placeholder: "HH:MM",
-        },
       ]}
       defaultForm={{
         name: "",
         branch_code: "",
         address: "",
-        schedule_day: "",
-        schedule_opening_time: "",
-        schedule_closing_time: "",
       }}
     />
   );
@@ -283,27 +263,31 @@ export function Payments() {
       endpoint="/payments/"
       request={request}
       canCreate={false}
-      canEdit={false}
+      canEdit={true}
       canDelete={false}
+      searchKeys={["payer_name", "reference", "status", "payment_for"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
+        { key: "payer_name", label: "Payer", render: (v) => v || "—" },
         {
           key: "amount",
           label: "Amount",
           render: (v, row) =>
-            `${row.currency || "₦"} ${Number(v || 0).toLocaleString()}`,
+            `${row.currency === "NGN" ? "₦" : `${row.currency} `}${Number(v || 0).toLocaleString()}`,
         },
         { key: "payment_for", label: "For" },
         { key: "status", label: "Status", render: (v) => <Badge status={v} /> },
         { key: "reference", label: "Reference", render: (v) => v || "—" },
         { key: "created_at", label: "Date", render: (v) => fmtShort(v) },
       ]}
-      formFields={[]}
-      defaultForm={{}}
+      formFields={[
+        {
+          name: "status",
+          label: "Status (set COMPLETED for cash payments; the payer gets a receipt)",
+          required: true,
+          options: ["PENDING", "COMPLETED", "FAILED"],
+        },
+      ]}
+      defaultForm={{ status: "" }}
     />
   );
 }
@@ -311,17 +295,19 @@ export function Payments() {
 // ── Users ─────────────────────────────────────
 export function Users() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const branches = useNames(request, "/branches/");
+  const isAdmin = user?.role === "ADMIN";
   return (
     <CrudPage
       title="Users"
       endpoint="/users/"
       request={request}
+      canCreate={isAdmin}
+      canEdit={isAdmin}
+      canDelete={isAdmin}
+      searchKeys={["full_name", "email", "phone_number", "role"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
         { key: "full_name", label: "Full Name" },
         { key: "email", label: "Email" },
         { key: "phone_number", label: "Phone" },
@@ -331,7 +317,7 @@ export function Users() {
           label: "Branch",
           render: (v) =>
             v ? (
-              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
+              branches[v] || <code style={{ fontSize: 11 }}>{shortId(v)}</code>
             ) : (
               <span style={{ color: "#94a3b8" }}>—</span>
             ),
@@ -344,8 +330,10 @@ export function Users() {
         {
           name: "password",
           label: "Password",
+          editLabel: "New Password (leave blank to keep the current one)",
           type: "password",
           required: true,
+          omitIfEmpty: true,
         },
         {
           name: "role",
@@ -378,29 +366,22 @@ export function Users() {
 // ── Doctors ───────────────────────────────────
 export function Doctors() {
   const { request } = useApi();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   return (
     <CrudPage
       title="Doctors"
       endpoint="/doctors/"
       request={request}
+      canCreate={isAdmin}
+      canEdit={isAdmin}
+      canDelete={isAdmin}
+      searchKeys={["user_full_name", "specialization", "license_number"]}
       columns={[
-        {
-          key: "id",
-          label: "ID",
-          render: (v) => <code style={{ fontSize: 11 }}>{shortId(v)}</code>,
-        },
+        idColumn,
+        userColumn,
         { key: "specialization", label: "Specialization" },
         { key: "license_number", label: "License No." },
-        {
-          key: "user_id",
-          label: "User",
-          render: (v, row) =>
-            row.user_full_name ? (
-              row.user_full_name
-            ) : (
-              <code style={{ fontSize: 11 }}>{shortId(v)}</code>
-            ),
-        },
       ]}
       formFields={[
         {

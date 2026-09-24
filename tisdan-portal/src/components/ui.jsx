@@ -173,8 +173,9 @@ export function Field({
       {options ? (
         <select
           name={name}
-          value={value || ""}
+          value={value ?? ""}
           onChange={onChange}
+          required={required}
           style={inputStyle}
         >
           <option value="">Select…</option>
@@ -198,7 +199,7 @@ export function Field({
         <input
           type={type}
           name={name}
-          value={value || ""}
+          value={value ?? ""}
           onChange={onChange}
           required={required}
           placeholder={placeholder}

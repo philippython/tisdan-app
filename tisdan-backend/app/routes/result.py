@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.result import ResultCreate, ResultResponse
+from app.schemas.result import ResultCreate, ResultUpdate, ResultResponse
 from app.services.result import (
     create_result_item,
     delete_result_item,
@@ -31,12 +31,12 @@ def create_result(
 
 
 @router.get("/", response_model=List[ResultResponse])
-def read_results(session: Session = Depends(get_session)):
+def read_results(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return list_result(session)
 
 
 @router.get("/{item_id}", response_model=ResultResponse)
-def read_result(item_id: str, session: Session = Depends(get_session)):
+def read_result(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     item = get_result(session, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -44,19 +44,19 @@ def read_result(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.get("/by-customer/{customer_id}", response_model=List[ResultResponse])
-def read_results_by_customer(customer_id: str, session: Session = Depends(get_session)):
+def read_results_by_customer(customer_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return get_results_by_customer(session, customer_id)
 
 
 @router.get("/by-customer-name/", response_model=List[ResultResponse])
-def read_results_by_customer_name(name: str, session: Session = Depends(get_session)):
+def read_results_by_customer_name(name: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR))):
     return get_results_by_customer_name(session, name)
 
 
 @router.put("/{item_id}", response_model=ResultResponse)
 def update_result(
     item_id: str,
-    payload: ResultCreate,
+    payload: ResultUpdate,
     session: Session = Depends(get_session),
     current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DOCTOR)),
 ):

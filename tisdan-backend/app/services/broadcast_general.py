@@ -1,3 +1,4 @@
+import traceback
 from typing import Any
 from sqlmodel import Session
 from app.repositories.broadcast_general import (
@@ -7,73 +8,40 @@ from app.repositories.broadcast_general import (
     get_all_broadcast_general,
     update_broadcast_general,
 )
-from app.utils.bot_notify import send_whatsapp_via_bot, format_phone
-from app.models import Customer, User
-from sqlmodel import select
+from app.utils.bot_notify import queue_whatsapp
+from app.services.recipients import client_phones
 
 
 def list_broadcast_general(session: Session):
-    return get_all_broadcast_general(session)
+    return sorted(get_all_broadcast_general(session), key=lambda b: b.created_at, reverse=True)
 
 
 def get_broadcast_general(session: Session, item_id: Any):
     return get_broadcast_general_by_id(session, item_id)
 
 
-def create_broadcast_general_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
-    item = create_broadcast_general(session, data)
-
-    # notify all customers and client users with phone numbers
-    title = data.get("title") or "Announcement"
-    message = data.get("message") or ""
-    full = f"*{title}*\n\n{message}\n\n— Tisdan Care"
-
-    # customers
+def _send_to_all_clients(session: Session, title: str, message: str) -> None:
     try:
-        stmt = select(Customer).where(Customer.phone_number != None)
-        for cust in session.exec(stmt):
-            to = format_phone(cust.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, full)
-
-        # users with role CLIENT
-        stmt2 = select(User).where(User.role == "CLIENT")
-        for user in session.exec(stmt2):
-            to = format_phone(user.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, full)
+        queue_whatsapp(client_phones(session), f"*{title}*\n\n{message}\n\n— Tisdan Care")
     except Exception:
-        # do not fail creation if notifications fail
-        pass
+        # Do not fail the primary operation if notifications fail,
+        # but always log so failures are visible instead of silent.
+        traceback.print_exc()
 
+
+def create_broadcast_general_item(session: Session, payload: Any):
+    data = payload.model_dump(exclude_none=True)
+    item = create_broadcast_general(session, data)
+    _send_to_all_clients(session, item.title or "Announcement", item.message or "")
     return item
 
 
 def update_broadcast_general_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     item = update_broadcast_general(session, item_id, data)
     if item is None:
         return None
-
-    # send update notification similar to create
-    title = data.get("title") or getattr(item, "title", "Announcement")
-    message = data.get("message") or getattr(item, "message", "")
-    full = f"*{title}*\n\n{message}\n\n— Tisdan Care"
-    try:
-        stmt = select(Customer).where(Customer.phone_number != None)
-        for cust in session.exec(stmt):
-            to = format_phone(cust.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, full)
-        stmt2 = select(User).where(User.role == "CLIENT")
-        for user in session.exec(stmt2):
-            to = format_phone(user.phone_number)
-            if to:
-                send_whatsapp_via_bot(to, full)
-    except Exception:
-        pass
-
+    _send_to_all_clients(session, item.title or "Announcement", item.message or "")
     return item
 
 

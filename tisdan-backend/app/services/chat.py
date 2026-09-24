@@ -18,12 +18,12 @@ def get_chat(session: Session, item_id: Any):
 
 
 def create_chat_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_chat(session, data)
 
 
 def update_chat_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_chat(session, item_id, data)
 
 

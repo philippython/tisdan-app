@@ -27,5 +27,16 @@ class BroadcastPersonalResponse(BaseModel):
     user_id: UUID
     message: str
     created_at: datetime
+    user_full_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class BroadcastGeneralUpdate(BaseModel):
+    title: str | None = None
+    message: str | None = None
+
+
+class BroadcastPersonalUpdate(BaseModel):
+    user_id: UUID | None = None
+    message: str | None = None

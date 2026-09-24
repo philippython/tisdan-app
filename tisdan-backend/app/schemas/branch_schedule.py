@@ -20,3 +20,10 @@ class BranchScheduleResponse(BaseModel):
     branch_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class BranchScheduleUpdate(BaseModel):
+    day: Optional[str] = None
+    opening_time: Optional[time] = None
+    closing_time: Optional[time] = None
+    branch_id: Optional[UUID] = None

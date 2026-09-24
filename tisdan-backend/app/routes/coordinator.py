@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.coordinator import CoordinatorCreate, CoordinatorResponse
+from app.schemas.coordinator import CoordinatorCreate, CoordinatorResponse, CoordinatorUpdate
 from app.services.coordinator import (
     create_coordinator_item,
     delete_coordinator_item,
@@ -19,6 +19,11 @@ router = APIRouter(
 )
 
 
+def _owner_filter(current_user):
+    """Coordinators only ever see their own record."""
+    return current_user.id if current_user.role == UserRole.COORDINATOR else None
+
+
 @router.post("/", response_model=CoordinatorResponse, status_code=status.HTTP_201_CREATED)
 def create_coordinator(payload: CoordinatorCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return create_coordinator_item(session, payload)
@@ -26,19 +31,20 @@ def create_coordinator(payload: CoordinatorCreate, session: Session = Depends(ge
 
 @router.get("/", response_model=List[CoordinatorResponse])
 def read_coordinators(session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.COORDINATOR))):
-    return list_coordinator(session)
+    return list_coordinator(session, user_id=_owner_filter(current_user))
 
 
 @router.get("/{item_id}", response_model=CoordinatorResponse)
-def read_coordinator(item_id: str, session: Session = Depends(get_session)):
+def read_coordinator(item_id: str, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.COORDINATOR))):
     item = get_coordinator(session, item_id)
-    if item is None:
+    owner = _owner_filter(current_user)
+    if item is None or (owner and item["user_id"] != owner):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     return item
 
 
 @router.put("/{item_id}", response_model=CoordinatorResponse)
-def update_coordinator(item_id: str, payload: CoordinatorCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def update_coordinator(item_id: str, payload: CoordinatorUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_coordinator_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

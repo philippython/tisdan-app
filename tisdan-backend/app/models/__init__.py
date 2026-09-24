@@ -12,6 +12,7 @@ from .message import Message
 from .result import Result
 from .customer import Customer
 from .patient import Patient
+from .referral import Referral
 from .staff import Staff
 from .test import Test
 from .payment import Payment
@@ -31,6 +32,7 @@ __all__ = [
     "Result",
     "Customer",
     "Patient",
+    "Referral",
     "Staff",
     "Test",
     "Payment",

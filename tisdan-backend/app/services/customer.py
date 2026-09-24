@@ -18,12 +18,12 @@ def get_customer(session: Session, item_id: Any):
 
 
 def create_customer_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_customer(session, data)
 
 
 def update_customer_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_customer(session, item_id, data)
 
 

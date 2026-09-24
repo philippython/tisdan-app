@@ -1,6 +1,7 @@
 from typing import Any
 from sqlmodel import Session
 from app.models import Branch
+from app.schemas.branch_schedule import BranchScheduleResponse
 from app.repositories.branch_schedule import (
     create_branch_schedule,
     delete_branch_schedule,
@@ -10,20 +11,27 @@ from app.repositories.branch_schedule import (
 )
 
 
+_DAY_ORDER = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+
+
 def _enrich_branch_schedule(session: Session, item):
     if item is None:
         return item
 
-    if getattr(item, "branch_id", None):
-        branch = session.get(Branch, item.branch_id)
-        if branch and getattr(branch, "name", None):
-            item.branch_name = branch.name
+    response = BranchScheduleResponse.model_validate(item)
+    branch = session.get(Branch, item.branch_id) if item.branch_id else None
+    response.branch_name = branch.name if branch else None
+    return response
 
-    return item
+
+def _sort_key(item):
+    day = (item.day or "").upper()
+    return (str(item.branch_id), _DAY_ORDER.index(day) if day in _DAY_ORDER else 99)
 
 
 def list_branch_schedule(session: Session):
-    return [_enrich_branch_schedule(session, item) for item in get_all_branch_schedule(session)]
+    items = sorted(get_all_branch_schedule(session), key=_sort_key)
+    return [_enrich_branch_schedule(session, item) for item in items]
 
 
 def get_branch_schedule(session: Session, item_id: Any):
@@ -31,13 +39,13 @@ def get_branch_schedule(session: Session, item_id: Any):
 
 
 def create_branch_schedule_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
-    return create_branch_schedule(session, data)
+    data = payload.model_dump(exclude_none=True)
+    return _enrich_branch_schedule(session, create_branch_schedule(session, data))
 
 
 def update_branch_schedule_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
-    return update_branch_schedule(session, item_id, data)
+    data = payload.model_dump(exclude_unset=True)
+    return _enrich_branch_schedule(session, update_branch_schedule(session, item_id, data))
 
 
 def delete_branch_schedule_item(session: Session, item_id: Any):

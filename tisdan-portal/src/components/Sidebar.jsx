@@ -36,6 +36,7 @@ const NAV = {
         { to: "/staff", label: "Staff", icon: "👥" },
         { to: "/doctors", label: "Doctors", icon: "👨‍⚕️" },
         { to: "/coordinators", label: "Coordinators", icon: "🔗" },
+        { to: "/referrals", label: "Referrals", icon: "🤝" },
       ],
     },
     {
@@ -61,8 +62,13 @@ const NAV = {
       section: "Catalogue",
       items: [
         { to: "/tests", label: "Diagnostic Tests", icon: "🔬" },
+        { to: "/branches", label: "Branches", icon: "🏥" },
         { to: "/branch-schedules", label: "Schedules", icon: "⏰" },
       ],
+    },
+    {
+      section: "Financials",
+      items: [{ to: "/payments", label: "Payments", icon: "💳" }],
     },
     {
       section: "Communications",
@@ -93,7 +99,7 @@ const NAV = {
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
-  const nav = NAV[user?.role] || NAV.STAFF;
+  const nav = NAV[user?.role] || [];
 
   return (
     <aside

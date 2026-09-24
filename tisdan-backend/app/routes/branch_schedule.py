@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.branch_schedule import BranchScheduleCreate, BranchScheduleResponse
+from app.schemas.branch_schedule import BranchScheduleCreate, BranchScheduleUpdate, BranchScheduleResponse
 from app.services.branch_schedule import (
     create_branch_schedule_item,
     delete_branch_schedule_item,
@@ -20,7 +20,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=BranchScheduleResponse, status_code=status.HTTP_201_CREATED)
-def create_branch_schedule(payload: BranchScheduleCreate, session: Session = Depends(get_session)):
+def create_branch_schedule(payload: BranchScheduleCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     return create_branch_schedule_item(session, payload)
 
 
@@ -38,7 +38,7 @@ def read_branch_schedule(item_id: str, session: Session = Depends(get_session)):
 
 
 @router.put("/{item_id}", response_model=BranchScheduleResponse)
-def update_branch_schedule(item_id: str, payload: BranchScheduleCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
+def update_branch_schedule(item_id: str, payload: BranchScheduleUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))):
     item = update_branch_schedule_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

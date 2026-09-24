@@ -18,12 +18,12 @@ def get_message(session: Session, item_id: Any):
 
 
 def create_message_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     return create_message(session, data)
 
 
 def update_message_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_unset=True)
     return update_message(session, item_id, data)
 
 

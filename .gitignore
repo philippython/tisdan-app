@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+fastapivenv/
+
+# Node / Vite
+node_modules/
+dist/
+
+# Secrets — copy the matching .env.example instead
+.env
+.env.local
+!.env.example
+
+# Local databases
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

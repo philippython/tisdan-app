@@ -36,15 +36,24 @@ def create_item(session: Session, model: Type[ModelType], data: Dict[str, Any]) 
     return item
 
 
+def _is_nullable(model: Type[ModelType], key: str) -> bool:
+    field = model.model_fields.get(key)
+    return field is not None and not field.is_required() and field.default is None
+
+
 def update_item(session: Session, model: Type[ModelType], item_id: Any, data: Dict[str, Any]) -> Optional[ModelType]:
     item = session.get(model, _to_uuid(item_id))
     if item is None:
         return None
-    # only update attributes that exist on the model
+    # only update attributes that exist on the model; a None value clears
+    # optional columns but is ignored for required ones
     allowed = set(getattr(model, "__fields__", {}).keys())
     for key, value in data.items():
-        if key in allowed:
-            setattr(item, key, value)
+        if key == "id" or key not in allowed:
+            continue
+        if value is None and not _is_nullable(model, key):
+            continue
+        setattr(item, key, value)
     session.add(item)
     session.commit()
     session.refresh(item)

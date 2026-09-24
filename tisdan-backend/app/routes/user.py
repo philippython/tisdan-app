@@ -4,7 +4,7 @@ from sqlmodel import Session
 from app.dependencies.authentication import require_roles
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.services.user import (
     create_user_item,
     delete_user_item,
@@ -20,7 +20,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, session: Session = Depends(get_session)):
+def create_user(payload: UserCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     return create_user_item(session, payload)
 
 
@@ -38,7 +38,7 @@ def read_user(item_id: str, session: Session = Depends(get_session), current_use
 
 
 @router.put("/{item_id}", response_model=UserResponse)
-def update_user(item_id: str, payload: UserCreate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
+def update_user(item_id: str, payload: UserUpdate, session: Session = Depends(get_session), current_user=Depends(require_roles(UserRole.ADMIN))):
     item = update_user_item(session, item_id, payload)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

@@ -1,10 +1,10 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from app.dependencies.authentication import require_roles
+from app.dependencies.authentication import require_roles, require_roles_or_bot
 from app.enums.role_enum import UserRole
 from app.routes.dependencies import get_session
-from app.schemas.booking import BookingCreate, BookingResponse
+from app.schemas.booking import BookingCreate, BookingUpdate, BookingResponse
 from app.services.booking import (
     create_booking_item,
     delete_booking_item,
@@ -20,7 +20,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
-def create_booking(payload: BookingCreate, session: Session = Depends(get_session)):
+def create_booking(payload: BookingCreate, session: Session = Depends(get_session), current_user=Depends(require_roles_or_bot(UserRole.ADMIN, UserRole.STAFF))):
     return create_booking_item(session, payload)
 
 
@@ -40,7 +40,7 @@ def read_booking(item_id: str, session: Session = Depends(get_session), current_
 @router.put("/{item_id}", response_model=BookingResponse)
 def update_booking(
     item_id: str,
-    payload: BookingCreate,
+    payload: BookingUpdate,
     session: Session = Depends(get_session),
     current_user=Depends(require_roles(UserRole.ADMIN, UserRole.STAFF)),
 ):

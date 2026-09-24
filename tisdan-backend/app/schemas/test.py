@@ -17,3 +17,10 @@ class TestResponse(BaseModel):
     branch_id: UUID | None = None
 
     model_config = {"from_attributes": True}
+
+
+class TestUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    price: float | None = None
+    branch_id: UUID | None = None

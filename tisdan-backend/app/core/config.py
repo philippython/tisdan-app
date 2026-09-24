@@ -49,9 +49,12 @@ class Settings(BaseSettings):
             self.FRONTEND_HOST
         ]
 
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "tisdan-api-v1"
     SENTRY_DSN: HttpUrl | None = None
-    SQLITE_DB_NAME: str
+    SQLITE_DB_NAME: str = "tisdan.db"
+    # Full SQLAlchemy URL (e.g. postgresql+psycopg://user:pass@host/db).
+    # When set it takes precedence over SQLITE_DB_NAME.
+    DATABASE_URL: str | None = None
     # POSTGRES_SERVER: str32
     # POSTGRES_USER: str
     # POSTGRES_PORT: int = 54
@@ -61,6 +64,8 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return f"sqlite:///{BASE_DIR / self.SQLITE_DB_NAME}"
         # return PostgresDsn.build(
         #     scheme="postgresql+psycopg",
@@ -96,6 +101,9 @@ class Settings(BaseSettings):
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     # External bot service (WhatsApp) base URL, e.g. https://bot.example.com
     TISDAN_BOT_URL: HttpUrl | None = None
+    # Shared secret between backend and bot. The bot sends it as the
+    # X-Bot-Key header; the backend sends it to the bot's /send endpoint.
+    BOT_API_KEY: str | None = None
     PAYSTACK_SECRET_KEY: str | None = None
     PAYSTACK_BASE_URL: HttpUrl = "https://api.paystack.co"
     # FIRST_SUPERUSER: EmailStr
@@ -111,6 +119,21 @@ class Settings(BaseSettings):
                 warnings.warn(message, stacklevel=1)
             else:
                 raise ValueError(message)
+
+    @model_validator(mode="after")
+    def _require_production_secrets(self) -> Self:
+        if self.ENVIRONMENT == "local":
+            return self
+        missing = [
+            name
+            for name in ("SECRET_KEY", "BOT_API_KEY")
+            if name not in self.model_fields_set
+        ]
+        if missing:
+            raise ValueError(
+                f"{', '.join(missing)} must be set when ENVIRONMENT={self.ENVIRONMENT}"
+            )
+        return self
 
     # @model_validator(mode="after")
     # def _enforce_non_default_secrets(self) -> Self:

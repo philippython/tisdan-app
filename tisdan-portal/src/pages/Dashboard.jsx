@@ -85,7 +85,7 @@ export default function Dashboard() {
           pendingResults: safeResults.filter((r) => r.status === "PENDING")
             .length,
         });
-        setRecentBookings([...safeBookings].reverse().slice(0, 8));
+        setRecentBookings(safeBookings.slice(0, 8)); // newest first from the API
         setPendingResults(
           safeResults.filter((r) => r.status === "PENDING").slice(0, 6),
         );
@@ -276,7 +276,7 @@ export default function Dashboard() {
             >
               <thead>
                 <tr>
-                  {["ID", "Date", "Status"].map((h) => (
+                  {["Patient", "Test", "Date", "Status"].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -311,9 +311,15 @@ export default function Dashboard() {
                         borderBottom: `1px solid ${C.border}`,
                       }}
                     >
-                      <code style={{ fontSize: 11, color: C.muted }}>
-                        {b.id.slice(0, 8)}…
-                      </code>
+                      {b.patient_name || "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        borderBottom: `1px solid ${C.border}`,
+                      }}
+                    >
+                      {b.test_name || "—"}
                     </td>
                     <td
                       style={{
@@ -398,7 +404,7 @@ export default function Dashboard() {
             >
               <thead>
                 <tr>
-                  {["Booking ID", "Uploaded", "Status"].map((h) => (
+                  {["Patient", "Test", "Uploaded", "Status"].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -433,9 +439,15 @@ export default function Dashboard() {
                         borderBottom: `1px solid ${C.border}`,
                       }}
                     >
-                      <code style={{ fontSize: 11, color: C.muted }}>
-                        {r.booking_id?.slice(0, 8)}…
-                      </code>
+                      {r.patient_name || "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        borderBottom: `1px solid ${C.border}`,
+                      }}
+                    >
+                      {r.test_name || "—"}
                     </td>
                     <td
                       style={{

@@ -34,40 +34,46 @@ def authenticate_user(session: Session, email: str, password: str):
 
 
 def create_user_item(session: Session, payload: Any):
-    data = payload.dict(exclude_none=True)
+    data = payload.model_dump(exclude_none=True)
     if "password" in data:
         data["password"] = get_password_hash(data["password"])
     
     # Create the user first
     user = create_user(session, data)
-    
-    # Automatically create role-specific records
-    role = data.get("role")
-    if role == UserRole.STAFF:
-        create_staff(session, {
-            "user_id": user.id,
-            "department": "General"
-        })
-    elif role == UserRole.DOCTOR:
-        create_doctor(session, {
-            "user_id": user.id,
-            "specialization": "General",
-            "license_number": f"LIC-{user.id.hex[:8].upper()}"
-        })
-    elif role == UserRole.COORDINATOR:
-        create_coordinator(session, {
-            "user_id": user.id,
-            "referral_code": f"REF-{user.id.hex[:8].upper()}"
-        })
-    
+    _ensure_role_record(session, user)
     return user
 
 
+def _ensure_role_record(session: Session, user) -> None:
+    """Make sure STAFF/DOCTOR/COORDINATOR users have their role-specific row."""
+    if user.role == UserRole.STAFF:
+        if not session.exec(select(Staff).where(Staff.user_id == user.id)).first():
+            create_staff(session, {"user_id": user.id, "department": "General"})
+    elif user.role == UserRole.DOCTOR:
+        if not session.exec(select(Doctor).where(Doctor.user_id == user.id)).first():
+            create_doctor(session, {
+                "user_id": user.id,
+                "specialization": "General",
+                "license_number": f"LIC-{user.id.hex[:8].upper()}",
+            })
+    elif user.role == UserRole.COORDINATOR:
+        if not session.exec(select(Coordinator).where(Coordinator.user_id == user.id)).first():
+            create_coordinator(session, {
+                "user_id": user.id,
+                "referral_code": f"REF-{user.id.hex[:8].upper()}",
+            })
+
+
 def update_user_item(session: Session, item_id: Any, payload: Any):
-    data = payload.dict(exclude_none=True)
-    if "password" in data:
-        data["password"] = get_password_hash(data["password"])
-    return update_user(session, item_id, data)
+    data = payload.model_dump(exclude_unset=True)
+    # a blank password on edit means "keep the current one"
+    password = data.pop("password", None)
+    if password:
+        data["password"] = get_password_hash(password)
+    user = update_user(session, item_id, data)
+    if user is not None:
+        _ensure_role_record(session, user)
+    return user
 
 
 def delete_user_item(session: Session, item_id: Any):
